@@ -1,9 +1,3 @@
 .*.swp
 TAGS
-tags
-data/kolodny-fragbag-testset
 data/experiments
-data/bowdbs
-pdb_disordered.fasta
-bin
-fragpred
