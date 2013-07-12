@@ -24,9 +24,9 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/BurntSushi/bcbgo/bow"
-	"github.com/BurntSushi/bcbgo/cmd/util"
 	"github.com/TuftsBCB/apps/matt"
+	"github.com/TuftsBCB/frags/bow"
+	"github.com/TuftsBCB/tools/util"
 )
 
 type results []result

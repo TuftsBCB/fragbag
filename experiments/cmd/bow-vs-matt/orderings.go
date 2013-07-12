@@ -5,10 +5,10 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/BurntSushi/bcbgo/bow"
-	"github.com/BurntSushi/bcbgo/cmd/util"
 	"github.com/TuftsBCB/apps/matt"
+	"github.com/TuftsBCB/frags/bow"
 	"github.com/TuftsBCB/io/pdb"
+	"github.com/TuftsBCB/tools/util"
 )
 
 type comparison [2]ordering
@@ -54,7 +54,7 @@ func (c chain) String() string {
 }
 
 func getBowOrdering(db *bow.DB,
-	opts bow.SearchOptions, bower bow.Bower) ordering {
+	opts bow.SearchOptions, bower bow.StructureBower) ordering {
 
 	results := db.Search(opts, bower)
 

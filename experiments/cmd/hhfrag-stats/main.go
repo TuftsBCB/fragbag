@@ -6,11 +6,11 @@ import (
 	"path"
 	"strings"
 
-	"github.com/BurntSushi/bcbgo/cmd/util"
 	"github.com/TuftsBCB/io/hhr"
 	"github.com/TuftsBCB/io/pdb"
 	"github.com/TuftsBCB/seq"
 	"github.com/TuftsBCB/structure"
+	"github.com/TuftsBCB/tools/util"
 )
 
 var (
@@ -61,7 +61,7 @@ func main() {
 					len(qatoms), len(frag.CaAtoms))
 			}
 
-			if rmsd.QCRMSD(qatoms, frag.CaAtoms) <= flagRmsd {
+			if structure.RMSD(qatoms, frag.CaAtoms) <= flagRmsd {
 				trueps += 1
 				stats.incTruePs(hit)
 			}

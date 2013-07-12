@@ -5,7 +5,7 @@ import (
 	"math"
 	"strings"
 
-	"github.com/BurntSushi/bcbgo/fragbag"
+	"github.com/TuftsBCB/frags/fragbag"
 	"github.com/TuftsBCB/seq"
 	"github.com/TuftsBCB/structure"
 )

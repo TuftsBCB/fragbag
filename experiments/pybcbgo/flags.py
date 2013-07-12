@@ -6,7 +6,7 @@ import sys
 import tempfile
 
 __parser = argparse.ArgumentParser(
-    description='bcbgo experiment framework',
+    description='bcb experiment framework',
     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 add = __parser.add_argument
 config = None
@@ -132,8 +132,8 @@ __flags = {
     ),
     'frag-lib': (
         aa('--frag-lib', dest='frag_lib', type=str,
-           default='./data/fraglibs/centers400_11.brk',
-           help='Path to a fragment library.'),
+           default='./data/400_11-struct.flib',
+           help='Path to a structure fragment library.'),
         verify_path,
     ),
     'bow-db': (
@@ -212,7 +212,7 @@ __flags = {
     ),
     'tmp-dir': (
         aa('--tmp-dir', dest='tmp_dir', type=str,
-           default=os.path.join(tempfile.gettempdir(), 'bcbgo',
+           default=os.path.join(tempfile.gettempdir(), 'pybcb',
                                 os.path.basename(sys.argv[0])),
            help='A scratch directory to store transient data for this '+
                 'experiment.'),

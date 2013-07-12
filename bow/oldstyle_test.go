@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/BurntSushi/bcbgo/fragbag"
+	"github.com/TuftsBCB/frags/fragbag"
 )
 
 var (

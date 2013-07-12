@@ -7,9 +7,9 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/BurntSushi/bcbgo/bow"
-	"github.com/BurntSushi/bcbgo/cmd/util"
+	"github.com/TuftsBCB/frags/bow"
 	"github.com/TuftsBCB/io/pdb"
+	"github.com/TuftsBCB/tools/util"
 )
 
 var (
@@ -37,7 +37,7 @@ func stderrf(format string, v ...interface{}) {
 
 func main() {
 	libFile := util.Arg(0)
-	lib := util.FragmentLibrary(libFile)
+	lib := util.StructureLibrary(libFile)
 
 	stderrf("Loading PDB files into memory...\n")
 	entries := make([]*pdb.Entry, util.NArg()-1)
@@ -53,7 +53,7 @@ func main() {
 
 		// Try to run old fragbag first. The output is an old-style BOW.
 		oldBowStr, err := runOldFragbag(libFile, entry.Path, lib.Size(),
-			lib.FragmentSize())
+			lib.FragmentSize)
 		if err != nil {
 			fmt.Println(err)
 			fmt.Printf("The output was:\n%s\n", oldBowStr)
@@ -73,9 +73,9 @@ func main() {
 		// Now use package fragbag to compute a BOW.
 		var newBow bow.BOW
 		if flagOldStyle {
-			newBow = bow.ComputeBOW(lib, bow.PDBEntryOldStyle{entry})
+			newBow = bow.StructureBOW(lib, bow.PDBEntryOldStyle{entry})
 		} else {
-			newBow = bow.ComputeBOW(lib, entry)
+			newBow = bow.StructureBOW(lib, entry)
 		}
 
 		// Create a diff and check if they are the same. If so, we passed.

@@ -11,7 +11,7 @@ import (
 	"runtime"
 	"sync"
 
-	"github.com/BurntSushi/bcbgo/fragbag"
+	"github.com/TuftsBCB/frags/fragbag"
 )
 
 // DB represents a BOW database. It is always connected to a particular
