@@ -4,8 +4,8 @@ import os
 import re
 import sys
 
-import pybcbgo as bcb
-import pybcbgo.flags as flags
+import pybcb as bcb
+import pybcb.flags as flags
 
 flags.use_all('pdb-dir', 'tmp-dir', 'results-dir', 'ignore-cache', 'no-cache',
               'frag-lib')

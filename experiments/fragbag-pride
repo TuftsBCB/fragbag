@@ -10,9 +10,9 @@ import sys
 
 import numpy as np
 
-import pybcbgo as bcb
-import pybcbgo.flags as flags
-import pybcbgo.sabmark as sabmark
+import pybcb as bcb
+import pybcb.flags as flags
+import pybcb.sabmark as sabmark
 
 flags.use_all('pdb-dir', 'frag-lib',
               'cpu', 'tmp-dir', 'results-dir',

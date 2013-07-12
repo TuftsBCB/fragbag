@@ -5,8 +5,8 @@ import sys
 
 import numpy as np
 
-import pybcbgo as bcb
-import pybcbgo.flags as flags
+import pybcb as bcb
+import pybcb.flags as flags
 
 flags.use_all('pdb-dir', 'pdb-hhm-db', 'seq-hhm-db',
               'hhfrag-inc', 'hhfrag-min', 'hhfrag-max',
