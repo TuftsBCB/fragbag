@@ -9,6 +9,7 @@ import (
 
 	"github.com/TuftsBCB/frags/bow"
 	"github.com/TuftsBCB/io/pdb"
+	"github.com/TuftsBCB/structure"
 	"github.com/TuftsBCB/tools/util"
 )
 
@@ -17,18 +18,33 @@ var (
 	flagOldStyle bool
 )
 
+type oldStyle struct {
+	*pdb.Entry
+}
+
+func (e oldStyle) Atoms() [][]structure.Coords {
+	smushed := make([]structure.Coords, 0)
+	for _, chain := range e.Chains {
+		for _, model := range chain.Models {
+			smushed = append(smushed, model.CaAtoms()...)
+		}
+	}
+	return [][]structure.Coords{smushed}
+}
+
 func init() {
 	flag.StringVar(&flagFragbag, "fragbag", "fragbag",
 		"The old fragbag executable.")
 	flag.BoolVar(&flagOldStyle, "oldstyle", false,
-		"When true, NewBowPDBOldStyle will be used to compute BOW vectors.")
+		"When true, PDB chains will be concatenated together as if they were "+
+			"one chain to compute a BOW vector.")
 
 	util.FlagParse(
-		"library-file pdb-file [pdb-file ...]",
+		"library-file brk-file pdb-file [pdb-file ...]",
 		"Note that if the old library and the new library don't have the\n"+
 			"same number of fragments and the same fragment size, bad things\n"+
 			"will happen.\n")
-	util.AssertLeastNArg(2)
+	util.AssertLeastNArg(3)
 }
 
 func stderrf(format string, v ...interface{}) {
@@ -37,11 +53,12 @@ func stderrf(format string, v ...interface{}) {
 
 func main() {
 	libFile := util.Arg(0)
+	brkFile := util.Arg(1)
 	lib := util.StructureLibrary(libFile)
 
 	stderrf("Loading PDB files into memory...\n")
-	entries := make([]*pdb.Entry, util.NArg()-1)
-	for i, pdbfile := range flag.Args()[1:] {
+	entries := make([]*pdb.Entry, util.NArg()-2)
+	for i, pdbfile := range flag.Args()[2:] {
 		entries[i] = util.PDBRead(pdbfile)
 	}
 
@@ -52,7 +69,7 @@ func main() {
 		fmt.Printf("Testing %s\n", entry.Path)
 
 		// Try to run old fragbag first. The output is an old-style BOW.
-		oldBowStr, err := runOldFragbag(libFile, entry.Path, lib.Size(),
+		oldBowStr, err := runOldFragbag(brkFile, entry.Path, lib.Size(),
 			lib.FragmentSize)
 		if err != nil {
 			fmt.Println(err)
@@ -73,7 +90,7 @@ func main() {
 		// Now use package fragbag to compute a BOW.
 		var newBow bow.BOW
 		if flagOldStyle {
-			newBow = bow.StructureBOW(lib, bow.PDBEntryOldStyle{entry})
+			newBow = bow.StructureBOW(lib, oldStyle{entry})
 		} else {
 			newBow = bow.StructureBOW(lib, entry)
 		}

@@ -5,24 +5,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-
-	"github.com/TuftsBCB/io/pdb"
-	"github.com/TuftsBCB/structure"
 )
-
-type PDBEntryOldStyle struct {
-	*pdb.Entry
-}
-
-func (e PDBEntryOldStyle) AtomChunks() [][]structure.Coords {
-	smushed := make([]structure.Coords, 0)
-	for _, chain := range e.Chains {
-		for _, model := range chain.Models {
-			smushed = append(smushed, model.CaAtoms()...)
-		}
-	}
-	return [][]structure.Coords{smushed}
-}
 
 // This file segregates several methods the provide interoperability between
 // the old Fragbag program (written by Rachel Kolodny) and this fragbag

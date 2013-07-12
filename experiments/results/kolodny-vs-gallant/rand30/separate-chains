@@ -1,11 +1,11 @@
 Loading PDB files into memory...
 Comparing the results of old fragbag and new fragbag on each PDB file...
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb1cxi.ent...
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb1cxi.ent
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb1cxi.ent...
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb1cxi.ent
 PASSED.
 ----------------------------------------------------
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb2dts.ent...
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb2dts.ent
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb2dts.ent...
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb2dts.ent
 FAILED.
 
 Old BOW:
@@ -17,8 +17,8 @@ New BOW:
 Diff:
 {42: -2, 61: -1, 92: -1, 132: -1, 186: -1, 253: -1, 270: -1, 293: -1, 301: -1}
 ----------------------------------------------------
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb2ces.ent...
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb2ces.ent
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb2ces.ent...
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb2ces.ent
 FAILED.
 
 Old BOW:
@@ -30,8 +30,8 @@ New BOW:
 Diff:
 {33: -1, 61: -2, 126: -1, 132: -3, 198: -1, 298: -1, 322: -1}
 ----------------------------------------------------
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb1ii2.ent...
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb1ii2.ent
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb1ii2.ent...
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb1ii2.ent
 FAILED.
 
 Old BOW:
@@ -43,24 +43,24 @@ New BOW:
 Diff:
 {42: -1, 61: -3, 78: -1, 132: -3, 293: -1, 322: -1}
 ----------------------------------------------------
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb3g5r.ent...
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb3g5r.ent
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb3g5r.ent...
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb3g5r.ent
 PASSED.
 ----------------------------------------------------
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb1o3g.ent...
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb1o3g.ent
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb1o3g.ent...
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb1o3g.ent
 PASSED.
 ----------------------------------------------------
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb3amk.ent...
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb3amk.ent
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb3amk.ent...
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb3amk.ent
 PASSED.
 ----------------------------------------------------
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb4a5t.ent...
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb4a5t.ent
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb4a5t.ent...
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb4a5t.ent
 PASSED.
 ----------------------------------------------------
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb2wya.ent...
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb2wya.ent
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb2wya.ent...
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb2wya.ent
 FAILED.
 
 Old BOW:
@@ -72,8 +72,8 @@ New BOW:
 Diff:
 {28: -1, 42: -8, 54: -1, 61: -6, 78: -1, 126: -5, 132: -5, 301: -1, 357: -1, 390: -1}
 ----------------------------------------------------
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb3qfm.ent...
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb3qfm.ent
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb3qfm.ent...
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb3qfm.ent
 FAILED.
 
 Old BOW:
@@ -85,20 +85,20 @@ New BOW:
 Diff:
 {42: -3, 54: -1, 133: -1, 270: -2, 356: -1, 357: -1, 375: -1}
 ----------------------------------------------------
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb2vqj.ent...
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb2vqj.ent
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb2vqj.ent...
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb2vqj.ent
 PASSED.
 ----------------------------------------------------
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb2waf.ent...
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb2waf.ent
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb2waf.ent...
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb2waf.ent
 PASSED.
 ----------------------------------------------------
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb3ndq.ent...
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb3ndq.ent
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb3ndq.ent...
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb3ndq.ent
 PASSED.
 ----------------------------------------------------
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb1tom.ent...
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb1tom.ent
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb1tom.ent...
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb1tom.ent
 FAILED.
 
 Old BOW:
@@ -110,16 +110,16 @@ New BOW:
 Diff:
 {19: -1, 24: -1, 42: -2, 92: -1, 100: -1, 104: -1, 132: -2, 146: -1, 166: -1, 242: -2, 270: -1, 293: -1, 302: -1, 307: -1, 349: -1, 358: -1}
 ----------------------------------------------------
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb1htj.ent...
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb1htj.ent
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb1htj.ent...
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb1htj.ent
 PASSED.
 ----------------------------------------------------
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb3nhh.ent...
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb3nhh.ent
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb3nhh.ent...
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb3nhh.ent
 PASSED.
 ----------------------------------------------------
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb2gjs.ent...
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb2gjs.ent
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb2gjs.ent...
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb2gjs.ent
 FAILED.
 
 Old BOW:
@@ -131,12 +131,12 @@ New BOW:
 Diff:
 {61: -2, 132: -1, 186: -1, 270: -2, 301: -1, 302: -1, 307: -1, 329: -1}
 ----------------------------------------------------
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb1sij.ent...
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb1sij.ent
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb1sij.ent...
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb1sij.ent
 PASSED.
 ----------------------------------------------------
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb1se0.ent...
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb1se0.ent
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb1se0.ent...
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb1se0.ent
 FAILED.
 
 Old BOW:
@@ -148,8 +148,8 @@ New BOW:
 Diff:
 {107: -1, 142: -1, 187: -1, 203: -1, 229: -1, 301: -1, 312: -1}
 ----------------------------------------------------
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb2gel.ent...
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb2gel.ent
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb2gel.ent...
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb2gel.ent
 FAILED.
 
 Old BOW:
@@ -161,12 +161,12 @@ New BOW:
 Diff:
 {42: -1, 61: -1, 132: -2, 156: -1, 174: -1, 186: -1, 270: -1, 293: -1, 301: -1}
 ----------------------------------------------------
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb2boe.ent...
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb2boe.ent
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb2boe.ent...
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb2boe.ent
 PASSED.
 ----------------------------------------------------
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb1du2.ent...
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb1du2.ent
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb1du2.ent...
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb1du2.ent
 FAILED.
 
 Old BOW:
@@ -178,8 +178,8 @@ New BOW:
 Diff:
 {0: -37, 2: -3, 3: -1, 4: -15, 6: -2, 7: -3, 8: -4, 10: -4, 11: -1, 14: -10, 15: -14, 16: -23, 17: -14, 18: -4, 23: -1, 24: -2, 25: -18, 26: -6, 27: -14, 28: -1, 31: -1, 32: -16, 33: -1, 36: -8, 37: -22, 39: -9, 40: -5, 42: -69, 43: -1, 44: -7, 45: -17, 47: -3, 48: -4, 49: -2, 51: -19, 52: -1, 53: -7, 54: -11, 55: -2, 56: -1, 57: -5, 58: -3, 61: -8, 64: -4, 65: -14, 66: -1, 69: -15, 71: -2, 72: -19, 73: -2, 74: -4, 75: -2, 76: -8, 80: -12, 81: -2, 82: -3, 83: -1, 84: -10, 85: -1, 86: -2, 87: -8, 88: -1, 89: -6, 90: -5, 91: -4, 92: -16, 93: -3, 95: -2, 96: -1, 97: -1, 98: -6, 100: -1, 104: -2, 105: -20, 106: -2, 107: -3, 110: -1, 111: -9, 112: -9, 114: -2, 115: -16, 118: -9, 119: -14, 121: -5, 122: -2, 124: -2, 125: -5, 126: -8, 127: -25, 131: -2, 132: -18, 134: -10, 135: -1, 136: -1, 137: -1, 138: -1, 140: -5, 141: -1, 143: -9, 144: -4, 145: -5, 146: -2, 147: -2, 149: -2, 150: -12, 151: -7, 152: -3, 153: -18, 154: -6, 156: -8, 157: -6, 158: -2, 160: -1, 161: -5, 162: -2, 163: -1, 165: -6, 166: -10, 167: -2, 168: -1, 170: -24, 172: -6, 174: -3, 175: -1, 176: -6, 177: -1, 178: -4, 180: -1, 181: -1, 182: -1, 183: -6, 184: -3, 186: -4, 187: -4, 188: -1, 190: -4, 194: -1, 195: -2, 196: -9, 197: -2, 198: -7, 200: -1, 201: -11, 203: -3, 204: -4, 205: -3, 206: -1, 207: -3, 208: -1, 209: -1, 211: -4, 213: -2, 214: -4, 216: -11, 218: -1, 219: -11, 220: -1, 222: -4, 223: -16, 225: -1, 226: -4, 227: -7, 229: -1, 232: -1, 233: -6, 234: -3, 235: -7, 241: -4, 242: -4, 243: -3, 246: -4, 247: -2, 248: -3, 251: -3, 253: -8, 255: -4, 256: -16, 257: -1, 258: -1, 259: -4, 260: -17, 261: -7, 268: -1, 270: -8, 271: -2, 272: -3, 276: -19, 278: -7, 279: -9, 284: -4, 291: -4, 292: -1, 293: -3, 294: -1, 297: -8, 298: -2, 301: -7, 302: -9, 305: -2, 307: -4, 308: -1, 309: -3, 310: -2, 311: -1, 312: -1, 315: -2, 316: -1, 317: -1, 318: -5, 321: -3, 322: -7, 323: -2, 325: -3, 326: -18, 327: -1, 329: -2, 331: -6, 334: -1, 335: -2, 337: -4, 338: -2, 339: -9, 342: -1, 347: -1, 348: -3, 349: -1, 350: -1, 351: -2, 353: -3, 354: -1, 355: -1, 356: -6, 357: -9, 358: -1, 359: -4, 360: -13, 361: -2, 362: -3, 366: -4, 367: -1, 368: -7, 370: -1, 371: -8, 376: -1, 377: -6, 378: -2, 379: -5, 382: -18, 383: -5, 385: -2, 387: -11, 389: -2, 390: -3, 391: -5, 392: -10, 395: -2, 397: -1}
 ----------------------------------------------------
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb2gll.ent...
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb2gll.ent
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb2gll.ent...
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb2gll.ent
 FAILED.
 
 Old BOW:
@@ -191,8 +191,8 @@ New BOW:
 Diff:
 {32: -1, 42: -11, 61: -5, 73: -1, 92: -4, 122: -1, 126: -1, 132: -7, 181: -1, 194: -2, 219: -1, 236: -1, 253: -4, 261: -1, 270: -1, 293: -4, 301: -1, 302: -1, 313: -1, 322: -1}
 ----------------------------------------------------
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb2eqh.ent...
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb2eqh.ent
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb2eqh.ent...
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb2eqh.ent
 FAILED.
 
 Old BOW:
@@ -204,12 +204,12 @@ New BOW:
 Diff:
 {7: -1, 13: -4, 19: -3, 20: -24, 28: -2, 29: -18, 30: -3, 32: -1, 38: -5, 48: -6, 50: -5, 54: -1, 56: -1, 59: -20, 64: -5, 68: -2, 78: -3, 81: -1, 83: -1, 85: -2, 96: -18, 98: -3, 102: -6, 108: -3, 109: -1, 112: -1, 114: -1, 116: -19, 117: -1, 120: -1, 122: -4, 131: -11, 138: -2, 140: -7, 142: -7, 146: -1, 150: -1, 152: -1, 155: -2, 159: -2, 160: -1, 162: -1, 163: -1, 171: -1, 172: -1, 173: -1, 177: -1, 181: -3, 182: -11, 186: -1, 191: -1, 209: -2, 210: -1, 212: -1, 213: -7, 218: -1, 221: -1, 229: -10, 231: -1, 232: -3, 234: -1, 236: -1, 239: -1, 243: -3, 250: -12, 261: -1, 262: -2, 264: -1, 266: -2, 268: -4, 274: -8, 275: -1, 279: -2, 285: -3, 286: -2, 295: -1, 301: -22, 304: -5, 312: -6, 314: -3, 324: -5, 328: -1, 329: -2, 330: -8, 332: -1, 336: -3, 337: -5, 341: -1, 342: -4, 351: -1, 358: -2, 361: -1, 363: -8, 364: -6, 365: -4, 367: -9, 375: -22, 378: -1, 382: -6, 385: -1, 389: -1, 390: -12, 393: -1, 398: -1}
 ----------------------------------------------------
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb2yxb.ent...
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb2yxb.ent
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb2yxb.ent...
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb2yxb.ent
 PASSED.
 ----------------------------------------------------
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb3e87.ent...
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb3e87.ent
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb3e87.ent...
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb3e87.ent
 FAILED.
 
 Old BOW:
@@ -221,20 +221,20 @@ New BOW:
 Diff:
 {42: -9, 61: -1, 84: -1, 91: -1, 102: -1, 107: -1, 117: -1, 122: -1, 132: -1, 186: -2, 187: -1, 270: -1, 293: -1, 297: -1, 301: -3, 322: -1, 356: -1, 390: -1, 392: -1}
 ----------------------------------------------------
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb4csc.ent...
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb4csc.ent
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb4csc.ent...
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb4csc.ent
 PASSED.
 ----------------------------------------------------
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb1c2b.ent...
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb1c2b.ent
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb1c2b.ent...
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb1c2b.ent
 PASSED.
 ----------------------------------------------------
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb1gb9.ent...
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb1gb9.ent
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb1gb9.ent...
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb1gb9.ent
 PASSED.
 ----------------------------------------------------
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb2o87.ent...
-Testing /tmp/bcbgo/kolodny-vs-gallant/rand30/pdb2o87.ent
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb2o87.ent...
+Testing /tmp/pybcb/kolodny-vs-gallant/rand30/pdb2o87.ent
 PASSED.
 ----------------------------------------------------
 Done!
