@@ -12,9 +12,9 @@ import (
 // Fragbag fragment libraries are fixed both in the number of fragments and in
 // the size of each fragment.
 type SequenceLibrary struct {
-	Ident        string
-	Fragments    []SequenceFragment
-	FragmentSize int
+	Ident     string
+	Fragments []SequenceFragment
+	FragSize  int
 }
 
 // NewSequenceLibrary initializes a new Fragbag sequence library with the
@@ -33,14 +33,14 @@ func (lib *SequenceLibrary) Add(prof *seq.Profile) error {
 	if lib.Fragments == nil || len(lib.Fragments) == 0 {
 		frag := SequenceFragment{0, prof}
 		lib.Fragments = append(lib.Fragments, frag)
-		lib.FragmentSize = prof.Len()
+		lib.FragSize = prof.Len()
 		return nil
 	}
 
 	frag := SequenceFragment{len(lib.Fragments), prof}
-	if lib.FragmentSize != prof.Len() {
+	if lib.FragSize != prof.Len() {
 		return fmt.Errorf("Fragment %d has length %d; expected length %d.",
-			frag.FragNumber(), prof.Len(), lib.FragmentSize)
+			frag.FragNumber(), prof.Len(), lib.FragSize)
 	}
 	lib.Fragments = append(lib.Fragments, frag)
 	return nil
@@ -48,14 +48,20 @@ func (lib *SequenceLibrary) Add(prof *seq.Profile) error {
 
 // Save saves the full fragment library to the writer provied.
 func (lib *SequenceLibrary) Save(w io.Writer) error {
+	if err := writeKind(w, lib, kindSequence); err != nil {
+		return err
+	}
 	enc := gob.NewEncoder(w)
 	return enc.Encode(*lib)
 }
 
 // Open loads an existing structure fragment library from the reader provided.
 func OpenSequenceLibrary(r io.Reader) (*SequenceLibrary, error) {
-	var lib *SequenceLibrary
+	if err := readKind(r, kindSequence); err != nil {
+		return nil, err
+	}
 
+	var lib *SequenceLibrary
 	dec := gob.NewDecoder(r)
 	if err := dec.Decode(&lib); err != nil {
 		return nil, err
@@ -68,11 +74,16 @@ func (lib *SequenceLibrary) Size() int {
 	return len(lib.Fragments)
 }
 
+// FragmentSize returns the size of every fragment in the library.
+func (lib *SequenceLibrary) FragmentSize() int {
+	return lib.FragSize
+}
+
 // String returns a string with the name of the library, the number of
 // fragments in the library and the size of each fragment.
 func (lib *SequenceLibrary) String() string {
 	return fmt.Sprintf("%s (%d, %d)",
-		lib.Ident, len(lib.Fragments), lib.FragmentSize)
+		lib.Ident, len(lib.Fragments), lib.FragSize)
 }
 
 func (lib *SequenceLibrary) Name() string {

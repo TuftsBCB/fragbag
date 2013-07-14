@@ -13,9 +13,9 @@ import (
 // Fragbag fragment libraries are fixed both in the number of fragments and in
 // the size of each fragment.
 type StructureLibrary struct {
-	Ident        string
-	Fragments    []StructureFragment
-	FragmentSize int
+	Ident     string
+	Fragments []StructureFragment
+	FragSize  int
 }
 
 // NewStructureLibrary initializes a new Fragbag structure library with the
@@ -33,14 +33,14 @@ func (lib *StructureLibrary) Add(coords []structure.Coords) error {
 	if lib.Fragments == nil || len(lib.Fragments) == 0 {
 		frag := StructureFragment{0, coords}
 		lib.Fragments = append(lib.Fragments, frag)
-		lib.FragmentSize = len(coords)
+		lib.FragSize = len(coords)
 		return nil
 	}
 
 	frag := StructureFragment{len(lib.Fragments), coords}
-	if lib.FragmentSize != len(coords) {
+	if lib.FragSize != len(coords) {
 		return fmt.Errorf("Fragment %d has length %d; expected length %d.",
-			frag.FragNumber(), len(coords), lib.FragmentSize)
+			frag.FragNumber(), len(coords), lib.FragSize)
 	}
 	lib.Fragments = append(lib.Fragments, frag)
 	return nil
@@ -48,14 +48,20 @@ func (lib *StructureLibrary) Add(coords []structure.Coords) error {
 
 // Save saves the full fragment library to the writer provied.
 func (lib *StructureLibrary) Save(w io.Writer) error {
+	if err := writeKind(w, lib, kindStructure); err != nil {
+		return err
+	}
 	enc := gob.NewEncoder(w)
 	return enc.Encode(*lib)
 }
 
 // Open loads an existing structure fragment library from the reader provided.
 func OpenStructureLibrary(r io.Reader) (*StructureLibrary, error) {
-	var lib *StructureLibrary
+	if err := readKind(r, kindStructure); err != nil {
+		return nil, err
+	}
 
+	var lib *StructureLibrary
 	dec := gob.NewDecoder(r)
 	if err := dec.Decode(&lib); err != nil {
 		return nil, err
@@ -68,11 +74,16 @@ func (lib *StructureLibrary) Size() int {
 	return len(lib.Fragments)
 }
 
+// FragmentSize returns the size of every fragment in the library.
+func (lib *StructureLibrary) FragmentSize() int {
+	return lib.FragSize
+}
+
 // String returns a string with the name of the library, the number of
 // fragments in the library and the size of each fragment.
 func (lib *StructureLibrary) String() string {
 	return fmt.Sprintf("%s (%d, %d)",
-		lib.Ident, len(lib.Fragments), lib.FragmentSize)
+		lib.Ident, len(lib.Fragments), lib.FragSize)
 }
 
 func (lib *StructureLibrary) Name() string {
@@ -83,7 +94,7 @@ func (lib *StructureLibrary) Name() string {
 // suitable size for this fragment library. Only one goroutine can use the
 // memory at a time.
 func (lib *StructureLibrary) rmsdMemory() structure.Memory {
-	return structure.NewMemory(lib.FragmentSize)
+	return structure.NewMemory(lib.FragSize)
 }
 
 // Best returns the number of the fragment that best corresponds

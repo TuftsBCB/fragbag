@@ -55,7 +55,7 @@ func StructureBOW(lib *fragbag.StructureLibrary, bower StructureBower) BOW {
 	var best, uplimit int
 
 	b := NewBow(lib.Size())
-	libSize := lib.FragmentSize
+	libSize := lib.FragmentSize()
 	for _, chunk := range bower.Atoms() {
 		if len(chunk) < libSize {
 			continue
