@@ -19,7 +19,7 @@ import (
 // a directory with a copy of the fragment library used to create the database
 // and a binary formatted file of all the frequency vectors computed.
 type DB struct {
-	Lib  *fragbag.StructureLibrary
+	Lib  fragbag.Library
 	Path string
 	Name string
 	file *os.File
@@ -32,10 +32,26 @@ type DB struct {
 
 	// for writing only
 	writeBuf    *bytes.Buffer
-	writing     chan StructureBower
+	writing     chan Bower
 	wg          *sync.WaitGroup
 	writingDone chan struct{}
 	entries     chan Entry
+}
+
+// IsStructure returns true if the underlying fragment library associated with
+// this BOW database is based on structure fragments. This value is guaranteed
+// to be mutually exclusive with the return value of IsSequence.
+func (db *DB) IsStructure() bool {
+	_, ok := db.Lib.(*fragbag.StructureLibrary)
+	return ok
+}
+
+// IsSequence returns true if the underlying fragment library associated with
+// this BOW database is based on sequence fragments. This value is guaranteed
+// to be mutually exclusive with the return value of IsStructure.
+func (db *DB) IsSequence() bool {
+	_, ok := db.Lib.(*fragbag.SequenceLibrary)
+	return ok
 }
 
 // OpenDB opens a new BOW database for reading. In particular, all entries
@@ -53,7 +69,7 @@ func OpenDB(dir string) (*DB, error) {
 		return nil, err
 	}
 
-	db.Lib, err = fragbag.OpenStructureLibrary(libf)
+	db.Lib, err = fragbag.Open(libf)
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +101,7 @@ func OpenDB(dir string) (*DB, error) {
 // Bower interface, and `Close` when finished adding.
 //
 // One a BOW database is created, it cannot be modified.
-func CreateDB(lib *fragbag.StructureLibrary, dir string) (*DB, error) {
+func CreateDB(lib fragbag.Library, dir string) (*DB, error) {
 	var err error
 
 	_, err = os.Stat(dir)
@@ -102,7 +118,7 @@ func CreateDB(lib *fragbag.StructureLibrary, dir string) (*DB, error) {
 		Name: path.Base(dir),
 
 		writeBuf:    new(bytes.Buffer),
-		writing:     make(chan StructureBower),
+		writing:     make(chan Bower),
 		entries:     make(chan Entry),
 		writingDone: make(chan struct{}),
 		wg:          new(sync.WaitGroup),
@@ -128,10 +144,7 @@ func CreateDB(lib *fragbag.StructureLibrary, dir string) (*DB, error) {
 		go func() {
 			db.wg.Add(1)
 			for bower := range db.writing {
-				db.entries <- Entry{
-					Id:  bower.Id(),
-					BOW: StructureBOW(db.Lib, bower),
-				}
+				db.entries <- db.NewEntry(bower)
 			}
 			db.wg.Done()
 		}()
@@ -152,13 +165,18 @@ func CreateDB(lib *fragbag.StructureLibrary, dir string) (*DB, error) {
 
 // Add will add any value implementing the Bower interface to the BOW
 // database. It is safe to call `Add` from multiple goroutines.
+// If the fragment library in the database is structure based, then bower
+// must also implement StructureBower. Conversely, if the fragment library is
+// sequence based, then bower must also implement SequenceBower.
+// A violation of the aforementioned invariant will result in a type assertion
+// panic.
 //
 // Note that `CreateDB` will already compute BOWs concurrently, which will
 // take advantage of parallelism when multiple CPUs are present.
 //
 // Add will panic if it is called on a BOW database that been opened for
 // reading.
-func (db *DB) Add(bower StructureBower) {
+func (db *DB) Add(bower Bower) {
 	if db.writing == nil {
 		panic("Cannot add to a BOW database opened in read mode.")
 	}
@@ -191,6 +209,24 @@ func (db *DB) String() string {
 type Entry struct {
 	Id  string
 	BOW BOW
+}
+
+func (db *DB) NewEntry(bower Bower) Entry {
+	switch lib := db.Lib.(type) {
+	case *fragbag.StructureLibrary:
+		b := bower.(StructureBower)
+		return Entry{
+			b.Id(),
+			b.BagOfWords(lib),
+		}
+	case *fragbag.SequenceLibrary:
+		b := bower.(SequenceBower)
+		return Entry{
+			b.Id(),
+			b.BagOfWords(lib),
+		}
+	}
+	panic(fmt.Sprintf("Unsupported fragment library: %T", db.Lib))
 }
 
 func max(a, b int) int {

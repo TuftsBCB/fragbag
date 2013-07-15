@@ -6,65 +6,78 @@ import (
 	"strings"
 
 	"github.com/TuftsBCB/frags/fragbag"
-	"github.com/TuftsBCB/seq"
+	"github.com/TuftsBCB/io/pdb"
+	// "github.com/TuftsBCB/seq"
 	"github.com/TuftsBCB/structure"
 )
 
-// A StructureBower corresponds to any value that can have a bag-of-words
-// computed from its tertiary structure (three dimensional coordinates).
-type StructureBower interface {
+type Bower interface {
 	// A globally unique identifier for this value.
 	// e.g., a PDB identifier "1ctf" or a PDB identifier with a chain
-	// identifier "1ctfA".
+	// identifier "1ctfA" or a sequence accession number.
 	Id() string
 
-	// An arbitrary string of data that will be stored with it in a BOW
+	// Arbitrary data that will be stored with it in a BOW
 	// database. No restrictions.
-	Data() string
+	Data() []byte
+}
 
-	// A list of regions of atom coordinates (usually from alpha-carbons only).
-	// Invariant: "best" fragments are only computed *within* each region
-	// of atom coordinates and never across them.
-	// For example, a single chain in a PDB file would have only one sub-list
-	// corresponding to all the atoms in its chain. Similarly for a SCOP
-	// domain.
-	// But for a whole PDB entry, each sub-list corresponds to the atom
-	// coordinates of a single chain so that "best" fragments are not computed
-	// across chain boundaries.
-	Atoms() [][]structure.Coords
+type StructureBower interface {
+	Bower
+
+	// Computes a bag-of-words given a structure fragment library.
+	// For example, to compute the bag-of-words of a chain in a PDB entry:
+	//
+	//     lib := someStructureFragmentLibrary()
+	//     chain := somePdbChain()
+	//     fmt.Println(PDBChainStructure{chain}.BagOfWords(lib))
+	//
+	// This is made easier by using pre-defined types in this package that
+	// implement this interface. (Similar to how the standard library sort
+	// package is designed.)
+	BagOfWords(lib *fragbag.StructureLibrary) BOW
 }
 
 type SequenceBower interface {
-	// A global unique identifier for this value.
-	// (e.g., a sequence accession number.)
-	Id() string
+	Bower
 
-	// An arbitrary string of data that will be stored with it in a BOW
-	// database. No restrictions.
-	Data() string
-
-	// A list of regions of residues.
-	// Invariant: "best" fragments are only computed *within* each region
-	// of residues and never across them.
-	// Usually, this only contains a single sub-list of all the residues in
-	// a target sequence.
-	Residues() [][]seq.Residue
+	// Computes a bag-of-words given a sequence fragment library.
+	BagOfWords(lib *fragbag.SequenceLibrary) BOW
 }
 
-func StructureBOW(lib *fragbag.StructureLibrary, bower StructureBower) BOW {
+type PDBChainStructure struct {
+	*pdb.Chain
+}
+
+func (chain PDBChainStructure) Id() string {
+	switch {
+	case len(chain.Entry.Scop) > 0:
+		return chain.Entry.Scop
+	case len(chain.Entry.Cath) > 0:
+		return chain.Entry.Cath
+	}
+	return fmt.Sprintf("%s%c", strings.ToLower(chain.Entry.IdCode), chain.Ident)
+}
+
+func (chain PDBChainStructure) Data() string {
+	return ""
+}
+
+func (chain PDBChainStructure) BagOfWords(lib *fragbag.StructureLibrary) BOW {
+	return StructureBOW(lib, chain.CaAtoms())
+}
+
+// StructureBOW is a helper function to compute a bag-of-words given a
+// structure fragment library and a list of alpha-carbon atoms.
+func StructureBOW(lib *fragbag.StructureLibrary, atoms []structure.Coords) BOW {
 	var best, uplimit int
 
 	b := NewBow(lib.Size())
 	libSize := lib.FragmentSize()
-	for _, chunk := range bower.Atoms() {
-		if len(chunk) < libSize {
-			continue
-		}
-		uplimit = len(chunk) - libSize
-		for i := 0; i <= uplimit; i++ {
-			best = lib.Best(chunk[i : i+libSize])
-			b.Freqs[best] += 1
-		}
+	uplimit = len(atoms) - libSize
+	for i := 0; i <= uplimit; i++ {
+		best = lib.Best(atoms[i : i+libSize])
+		b.Freqs[best] += 1
 	}
 	return b
 }

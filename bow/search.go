@@ -52,12 +52,8 @@ func newSearchResult(query, entry Entry) SearchResult {
 	}
 }
 
-func (db *DB) Search(opts SearchOptions, bower StructureBower) []SearchResult {
-	query := Entry{
-		Id:  bower.Id(),
-		BOW: StructureBOW(db.Lib, bower),
-	}
-	return db.SearchEntry(opts, query)
+func (db *DB) Search(opts SearchOptions, query Bower) []SearchResult {
+	return db.SearchEntry(opts, db.NewEntry(query))
 }
 
 func (db *DB) SearchEntry(opts SearchOptions, query Entry) []SearchResult {
