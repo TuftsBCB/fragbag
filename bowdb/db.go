@@ -1,6 +1,7 @@
 package bowdb
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/binary"
 	"fmt"
@@ -20,10 +21,11 @@ import (
 // a directory with a copy of the fragment library used to create the database
 // and a binary formatted file of all the frequency vectors computed.
 type DB struct {
-	Lib  fragbag.Library
-	Path string
-	Name string
-	file *os.File
+	Lib     fragbag.Library
+	Path    string
+	Name    string
+	file    *os.File
+	fileBuf *bufio.Reader
 
 	// Only set when opened in reading mode.
 	Entries []Entry
@@ -79,8 +81,9 @@ func OpenDB(dir string) (*DB, error) {
 	if err != nil {
 		return nil, err
 	}
+	db.fileBuf = bufio.NewReader(db.file)
 
-	db.Entries = make([]Entry, 0, 1000)
+	db.Entries = make([]Entry, 0, 10000)
 	for {
 		entry, err := db.read()
 		if err == io.EOF {
@@ -88,7 +91,7 @@ func OpenDB(dir string) (*DB, error) {
 		} else if err != nil {
 			return nil, err
 		}
-		db.Entries = append(db.Entries, entry)
+		db.Entries = append(db.Entries, *entry)
 	}
 
 	return db, nil
@@ -208,7 +211,16 @@ func (db *DB) String() string {
 // identified by Id, which is typically constructed as the concatenation
 // of the 4 letter PDB Id Code with the single letter chain identifier.
 type Entry struct {
-	Id  string
+	// Id is a uniquely identifying string for this row in the database.
+	// In the case of a PDB chain structure, it is the 4 letter PDB id
+	// code concatenated with the single letter chain identifier.
+	Id string
+
+	// Arbitrary data associated with this entry.
+	// For example, the sequence header in a FASTA file.
+	Data []byte
+
+	// The fragment frequency vector.
 	BOW bow.BOW
 }
 
@@ -218,12 +230,14 @@ func (db *DB) NewEntry(bower bow.Bower) Entry {
 		b := bower.(bow.StructureBower)
 		return Entry{
 			b.Id(),
+			bower.Data(),
 			b.StructureBOW(lib),
 		}
 	case *fragbag.SequenceLibrary:
 		b := bower.(bow.SequenceBower)
 		return Entry{
 			b.Id(),
+			bower.Data(),
 			b.SequenceBOW(lib),
 		}
 	}
@@ -243,99 +257,124 @@ func max(a, b int) int {
 // reading), but we need to be as fast here as possible. (It looks like
 // there is a fair bit of allocation going on in the binary package.)
 // Benchmarks are gone in the wind...
-func (db *DB) read() (Entry, error) {
-	libs := db.Lib.Size()
+func (db *DB) read() (*Entry, error) {
+	libSize := db.Lib.Size()
 
-	// Find the number of bytes used by the next entry.
-	entryLenBs := make([]byte, 4)
-	if n, err := db.file.Read(entryLenBs); err != nil {
-		// Test the first read to see if we're at the end.
-		// This is the only place where it's OK to see an EOF.
-		if err == io.EOF {
-			return Entry{}, err
+	// Read in the id string.
+	if err := db.readItem(); err != nil {
+		return nil, err
+	}
+	id := string(db.entryBuf)
+
+	// Read in the arbitrary data.
+	if err := db.readItem(); err != nil {
+		return nil, err
+	}
+	data := make([]byte, len(db.entryBuf))
+	copy(data, db.entryBuf)
+
+	// Now read in the BOW.
+	if err := db.readItem(); err != nil {
+		return nil, err
+	}
+	if len(db.entryBuf) != libSize*2 {
+		return nil, fmt.Errorf("Expected %d bytes for BOW vector but got %d",
+			libSize*2, len(db.entryBuf))
+	}
+
+	freqs := make([]uint32, libSize)
+	for i := 0; i < libSize; i++ {
+		freqs[i] = uint32(binary.BigEndian.Uint16(db.entryBuf[i*2:]))
+	}
+	return &Entry{id, data, bow.BOW{freqs}}, nil
+}
+
+func (db *DB) readItem() error {
+	if err := db.readNBytes(4); err != nil {
+		return err
+	}
+	itemLen := binary.BigEndian.Uint32(db.entryBuf)
+
+	if err := db.readNBytes(int(itemLen)); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (db *DB) readNBytes(n int) error {
+	if db.entryBuf == nil || n > cap(db.entryBuf) {
+		db.entryBuf = make([]byte, n)
+	}
+	db.entryBuf = db.entryBuf[0:n]
+
+	nread := 0
+	for nread < n {
+		if thisn, err := db.fileBuf.Read(db.entryBuf[nread:]); err != nil {
+			if err == io.EOF {
+				return io.EOF
+			}
+			return fmt.Errorf("Error reading item: %s", err)
+		} else if thisn == 0 {
+			return fmt.Errorf("Expected item with length %d, but got %d",
+				n, nread)
+		} else {
+			nread += thisn
 		}
-		return Entry{}, fmt.Errorf("Error reading entry length: %s", err)
-	} else if n != len(entryLenBs) {
-		return Entry{},
-			fmt.Errorf("Expected entry length with length %d, but got %d",
-				len(entryLenBs), n)
 	}
-	entryLen := readUint32(entryLenBs)
-
-	// Read in the full entry.
-	if db.entryBuf == nil || int(entryLen) > cap(db.entryBuf) {
-		db.entryBuf = make([]byte, entryLen)
-	}
-	entry := db.entryBuf[0:entryLen]
-	if n, err := db.file.Read(entry); err != nil {
-		return Entry{},
-			fmt.Errorf("Error reading entry: %s", err)
-	} else if n != len(entry) {
-		return Entry{},
-			fmt.Errorf("Expected entry with length %d, but got %d",
-				len(entry), n)
-	}
-
-	// Now gobble up a null terminated id string and the BOW vector.
-	id := string(entry[0 : len(entry)-(1+libs*2)])
-	vector := entry[len(id)+1:]
-	freqs := make([]uint32, libs)
-	for i := 0; i < libs; i++ {
-		freqs[i] = readUint16As32(vector[i*2:])
-	}
-
-	return Entry{
-		Id:  id,
-		BOW: bow.BOW{freqs},
-	}, nil
+	return nil
 }
 
-// big endian
-func readUint32(b []byte) uint32 {
-	return uint32(b[0])<<24 |
-		uint32(b[1])<<16 |
-		uint32(b[2])<<8 |
-		uint32(b[3])
-}
-
-// big endian
-func readUint16As32(b []byte) uint32 {
-	return uint32(b[0])<<8 | uint32(b[1])
-}
+// func (db *DB) readNBytes(n int) error {
+// if db.entryBuf == nil || n > cap(db.entryBuf) {
+// db.entryBuf = make([]byte, n)
+// }
+// db.entryBuf = db.entryBuf[0:n]
+//
+// if thisn, err := db.file.Read(db.entryBuf); err != nil {
+// if err == io.EOF {
+// return io.EOF
+// }
+// return fmt.Errorf("Error reading item: %s", err)
+// } else if thisn != n {
+// return fmt.Errorf("Expected item with length %d, but got %d",
+// n, thisn)
+// }
+// return nil
+// }
 
 func (db *DB) write(entry Entry) error {
-	endian := binary.BigEndian
-	idCode := fmt.Sprintf("%s%c", entry.Id, 0)
 	libSize := db.Lib.Size()
-	buf := db.writeBuf
 
-	// Write the id code and BOW vector to a buffer.
-	buf.Reset()
-	if _, err := buf.WriteString(idCode); err != nil {
-		return fmt.Errorf("Something bad has happened when trying to write "+
-			"id: %s.", err)
+	db.writeBuf.WriteString(entry.Id)
+	if err := db.writeItem(); err != nil {
+		return err
 	}
+
+	db.writeBuf.Write(entry.Data)
+	if err := db.writeItem(); err != nil {
+		return err
+	}
+
 	for i := 0; i < libSize; i++ {
-		f := int16(entry.BOW.Freqs[i])
-		if err := binary.Write(buf, endian, f); err != nil {
-			return fmt.Errorf("Something bad has happened when trying to "+
-				"write BOW: %s.", err)
+		f := uint16(entry.BOW.Freqs[i])
+		if err := binary.Write(db.writeBuf, binary.BigEndian, f); err != nil {
+			return fmt.Errorf("Could not write BOW for '%s': %s", entry.Id, err)
 		}
 	}
-
-	// Write the number of bytes in this entry.
-	// (To make reading easier.)
-	entryLen := uint32(buf.Len())
-	if err := binary.Write(db.file, endian, entryLen); err != nil {
-		return fmt.Errorf("Something bad has happened when trying to write "+
-			"entry size to the bow.db: %s.", err)
+	if err := db.writeItem(); err != nil {
+		return err
 	}
+	return nil
+}
 
-	// Write the buffer to disk.
-	if _, err := db.file.Write(buf.Bytes()); err != nil {
-		return fmt.Errorf("Something bad has happened when trying to write "+
-			"to the bow.db: %s.", err)
+func (db *DB) writeItem() error {
+	itemLen := uint32(db.writeBuf.Len())
+	if err := binary.Write(db.file, binary.BigEndian, itemLen); err != nil {
+		return fmt.Errorf("Could not write item size: %s", err)
 	}
-
+	if _, err := db.file.Write(db.writeBuf.Bytes()); err != nil {
+		return fmt.Errorf("Could not write item: %s", err)
+	}
+	db.writeBuf.Reset()
 	return nil
 }
