@@ -1,4 +1,4 @@
-package bow
+package bowdb
 
 import (
 	"bytes"
@@ -12,6 +12,7 @@ import (
 	"sync"
 
 	"github.com/TuftsBCB/fragbag"
+	"github.com/TuftsBCB/fragbag/bow"
 )
 
 // DB represents a BOW database. It is always connected to a particular
@@ -32,7 +33,7 @@ type DB struct {
 
 	// for writing only
 	writeBuf    *bytes.Buffer
-	writing     chan Bower
+	writing     chan bow.Bower
 	wg          *sync.WaitGroup
 	writingDone chan struct{}
 	entries     chan Entry
@@ -118,7 +119,7 @@ func CreateDB(lib fragbag.Library, dir string) (*DB, error) {
 		Name: path.Base(dir),
 
 		writeBuf:    new(bytes.Buffer),
-		writing:     make(chan Bower),
+		writing:     make(chan bow.Bower),
 		entries:     make(chan Entry),
 		writingDone: make(chan struct{}),
 		wg:          new(sync.WaitGroup),
@@ -176,7 +177,7 @@ func CreateDB(lib fragbag.Library, dir string) (*DB, error) {
 //
 // Add will panic if it is called on a BOW database that been opened for
 // reading.
-func (db *DB) Add(bower Bower) {
+func (db *DB) Add(bower bow.Bower) {
 	if db.writing == nil {
 		panic("Cannot add to a BOW database opened in read mode.")
 	}
@@ -208,19 +209,19 @@ func (db *DB) String() string {
 // of the 4 letter PDB Id Code with the single letter chain identifier.
 type Entry struct {
 	Id  string
-	BOW BOW
+	BOW bow.BOW
 }
 
-func (db *DB) NewEntry(bower Bower) Entry {
+func (db *DB) NewEntry(bower bow.Bower) Entry {
 	switch lib := db.Lib.(type) {
 	case *fragbag.StructureLibrary:
-		b := bower.(StructureBower)
+		b := bower.(bow.StructureBower)
 		return Entry{
 			b.Id(),
 			b.StructureBOW(lib),
 		}
 	case *fragbag.SequenceLibrary:
-		b := bower.(SequenceBower)
+		b := bower.(bow.SequenceBower)
 		return Entry{
 			b.Id(),
 			b.SequenceBOW(lib),
@@ -285,7 +286,7 @@ func (db *DB) read() (Entry, error) {
 
 	return Entry{
 		Id:  id,
-		BOW: BOW{freqs},
+		BOW: bow.BOW{freqs},
 	}, nil
 }
 

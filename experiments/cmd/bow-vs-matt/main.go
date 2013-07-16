@@ -26,6 +26,7 @@ import (
 
 	"github.com/TuftsBCB/apps/matt"
 	"github.com/TuftsBCB/fragbag/bow"
+	"github.com/TuftsBCB/fragbag/bowdb"
 	"github.com/TuftsBCB/tools/util"
 )
 
@@ -34,7 +35,7 @@ type results []result
 type result struct {
 	entry   string
 	chain   byte
-	results bow.SearchResult
+	results bowdb.SearchResult
 }
 
 func init() {
@@ -52,10 +53,8 @@ func main() {
 
 	util.Assert(createBowDb(dbPath, fragLibDir, pdbFiles))
 
-	db, err := bow.OpenDB(dbPath)
-	util.Assert(err)
-
-	bowOpts := bow.SearchDefault
+	db := util.OpenBOWDB(dbPath)
+	bowOpts := bowdb.SearchDefault
 	bowOpts.Limit = 200
 	mattOpts := matt.DefaultConfig
 	mattOpts.Verbose = false

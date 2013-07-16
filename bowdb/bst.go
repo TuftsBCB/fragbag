@@ -1,4 +1,4 @@
-package bow
+package bowdb
 
 type bst struct {
 	root     *node

@@ -1,8 +1,10 @@
-package bow
+package bowdb
 
 import (
 	"fmt"
 	"math"
+
+	"github.com/TuftsBCB/fragbag/bow"
 )
 
 const (
@@ -52,7 +54,7 @@ func newSearchResult(query, entry Entry) SearchResult {
 	}
 }
 
-func (db *DB) Search(opts SearchOptions, query Bower) []SearchResult {
+func (db *DB) Search(opts SearchOptions, query bow.Bower) []SearchResult {
 	return db.SearchEntry(opts, db.NewEntry(query))
 }
 

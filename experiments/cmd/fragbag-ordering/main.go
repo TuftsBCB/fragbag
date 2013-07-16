@@ -5,7 +5,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/TuftsBCB/fragbag/bow"
+	"github.com/TuftsBCB/fragbag/bowdb"
 	"github.com/TuftsBCB/tools/util"
 )
 
@@ -23,7 +23,7 @@ func main() {
 	}
 
 	// Set our search options.
-	bowOpts := bow.SearchDefault
+	bowOpts := bowdb.SearchDefault
 	bowOpts.Limit = -1
 
 	printf("QueryID\tResultID\tCosine\tEuclid\n")

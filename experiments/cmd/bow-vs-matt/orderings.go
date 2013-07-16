@@ -7,6 +7,7 @@ import (
 
 	"github.com/TuftsBCB/apps/matt"
 	"github.com/TuftsBCB/fragbag/bow"
+	"github.com/TuftsBCB/fragbag/bowdb"
 	"github.com/TuftsBCB/io/pdb"
 	"github.com/TuftsBCB/tools/util"
 )
@@ -53,8 +54,8 @@ func (c chain) String() string {
 	return fmt.Sprintf("%s\t%0.4f", c.idCode, c.dist)
 }
 
-func getBowOrdering(db *bow.DB,
-	opts bow.SearchOptions, bower bow.StructureBower) ordering {
+func getBowOrdering(db *bowdb.DB,
+	opts bowdb.SearchOptions, bower bow.StructureBower) ordering {
 
 	results := db.Search(opts, bower)
 
