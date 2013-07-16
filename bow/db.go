@@ -11,7 +11,7 @@ import (
 	"runtime"
 	"sync"
 
-	"github.com/TuftsBCB/frags/fragbag"
+	"github.com/TuftsBCB/fragbag"
 )
 
 // DB represents a BOW database. It is always connected to a particular
@@ -217,13 +217,13 @@ func (db *DB) NewEntry(bower Bower) Entry {
 		b := bower.(StructureBower)
 		return Entry{
 			b.Id(),
-			b.BagOfWords(lib),
+			b.StructureBOW(lib),
 		}
 	case *fragbag.SequenceLibrary:
 		b := bower.(SequenceBower)
 		return Entry{
 			b.Id(),
-			b.BagOfWords(lib),
+			b.SequenceBOW(lib),
 		}
 	}
 	panic(fmt.Sprintf("Unsupported fragment library: %T", db.Lib))

@@ -7,7 +7,8 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/TuftsBCB/frags/bow"
+	"github.com/TuftsBCB/fragbag"
+	"github.com/TuftsBCB/fragbag/bow"
 	"github.com/TuftsBCB/io/pdb"
 	"github.com/TuftsBCB/structure"
 	"github.com/TuftsBCB/tools/util"
@@ -22,14 +23,28 @@ type oldStyle struct {
 	*pdb.Entry
 }
 
-func (e oldStyle) Atoms() [][]structure.Coords {
+func (e oldStyle) StructureBOW(lib *fragbag.StructureLibrary) bow.BOW {
 	smushed := make([]structure.Coords, 0)
 	for _, chain := range e.Chains {
 		for _, model := range chain.Models {
 			smushed = append(smushed, model.CaAtoms()...)
 		}
 	}
-	return [][]structure.Coords{smushed}
+	return bow.StructureBOW(lib, smushed)
+}
+
+type newStyle struct {
+	*pdb.Entry
+}
+
+func (e newStyle) StructureBOW(lib *fragbag.StructureLibrary) bow.BOW {
+	bag := bow.NewBow(lib.Size())
+	for _, chain := range e.Chains {
+		for _, model := range chain.Models {
+			bag = bag.Add(bow.StructureBOW(lib, model.CaAtoms()))
+		}
+	}
+	return bag
 }
 
 func init() {
@@ -70,7 +85,7 @@ func main() {
 
 		// Try to run old fragbag first. The output is an old-style BOW.
 		oldBowStr, err := runOldFragbag(brkFile, entry.Path, lib.Size(),
-			lib.FragmentSize)
+			lib.FragmentSize())
 		if err != nil {
 			fmt.Println(err)
 			fmt.Printf("The output was:\n%s\n", oldBowStr)
@@ -90,9 +105,9 @@ func main() {
 		// Now use package fragbag to compute a BOW.
 		var newBow bow.BOW
 		if flagOldStyle {
-			newBow = bow.StructureBOW(lib, oldStyle{entry})
+			newBow = oldStyle{entry}.StructureBOW(lib)
 		} else {
-			newBow = bow.StructureBOW(lib, entry)
+			newBow = newStyle{entry}.StructureBOW(lib)
 		}
 
 		// Create a diff and check if they are the same. If so, we passed.

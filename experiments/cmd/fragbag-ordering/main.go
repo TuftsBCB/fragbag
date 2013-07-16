@@ -5,7 +5,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/TuftsBCB/frags/bow"
+	"github.com/TuftsBCB/fragbag/bow"
 	"github.com/TuftsBCB/tools/util"
 )
 

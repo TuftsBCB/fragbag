@@ -5,7 +5,7 @@ import (
 	"math"
 	"strings"
 
-	"github.com/TuftsBCB/frags/fragbag"
+	"github.com/TuftsBCB/fragbag"
 	"github.com/TuftsBCB/io/pdb"
 	// "github.com/TuftsBCB/seq"
 	"github.com/TuftsBCB/structure"
@@ -30,19 +30,19 @@ type StructureBower interface {
 	//
 	//     lib := someStructureFragmentLibrary()
 	//     chain := somePdbChain()
-	//     fmt.Println(PDBChainStructure{chain}.BagOfWords(lib))
+	//     fmt.Println(PDBChainStructure{chain}.StructureBOW(lib))
 	//
 	// This is made easier by using pre-defined types in this package that
 	// implement this interface. (Similar to how the standard library sort
 	// package is designed.)
-	BagOfWords(lib *fragbag.StructureLibrary) BOW
+	StructureBOW(lib *fragbag.StructureLibrary) BOW
 }
 
 type SequenceBower interface {
 	Bower
 
 	// Computes a bag-of-words given a sequence fragment library.
-	BagOfWords(lib *fragbag.SequenceLibrary) BOW
+	SequenceBOW(lib *fragbag.SequenceLibrary) BOW
 }
 
 type PDBChainStructure struct {
@@ -59,11 +59,11 @@ func (chain PDBChainStructure) Id() string {
 	return fmt.Sprintf("%s%c", strings.ToLower(chain.Entry.IdCode), chain.Ident)
 }
 
-func (chain PDBChainStructure) Data() string {
-	return ""
+func (chain PDBChainStructure) Data() []byte {
+	return nil
 }
 
-func (chain PDBChainStructure) BagOfWords(lib *fragbag.StructureLibrary) BOW {
+func (chain PDBChainStructure) StructureBOW(lib *fragbag.StructureLibrary) BOW {
 	return StructureBOW(lib, chain.CaAtoms())
 }
 

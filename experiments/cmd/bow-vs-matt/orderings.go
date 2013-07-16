@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/TuftsBCB/apps/matt"
-	"github.com/TuftsBCB/frags/bow"
+	"github.com/TuftsBCB/fragbag/bow"
 	"github.com/TuftsBCB/io/pdb"
 	"github.com/TuftsBCB/tools/util"
 )

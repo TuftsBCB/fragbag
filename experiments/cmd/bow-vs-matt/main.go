@@ -25,7 +25,7 @@ import (
 	"text/tabwriter"
 
 	"github.com/TuftsBCB/apps/matt"
-	"github.com/TuftsBCB/frags/bow"
+	"github.com/TuftsBCB/fragbag/bow"
 	"github.com/TuftsBCB/tools/util"
 )
 
@@ -74,7 +74,7 @@ func main() {
 	for i, chain := range chains {
 		marg := mattArgs[i]
 
-		bowOrdered := getBowOrdering(db, bowOpts, chain)
+		bowOrdered := getBowOrdering(db, bowOpts, bow.PDBChainStructure{chain})
 		mattOrdered := getMattOrdering(mattOpts, marg, mattArgs)
 
 		fmt.Printf("Ordering for %s (chain %c)\n",
