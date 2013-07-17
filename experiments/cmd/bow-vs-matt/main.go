@@ -54,6 +54,9 @@ func main() {
 	util.Assert(createBowDb(dbPath, fragLibDir, pdbFiles))
 
 	db := util.OpenBOWDB(dbPath)
+	_, err := db.ReadAll()
+	util.Assert(err, "Could not read BOW database entries")
+
 	bowOpts := bowdb.SearchDefault
 	bowOpts.Limit = 200
 	mattOpts := matt.DefaultConfig

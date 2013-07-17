@@ -21,24 +21,30 @@ import (
 // a directory with a copy of the fragment library used to create the database
 // and a binary formatted file of all the frequency vectors computed.
 type DB struct {
-	Lib     fragbag.Library
-	Path    string
-	Name    string
+	Lib  fragbag.Library
+	Path string
+	Name string
+
+	// The file containing the bow library and its buffer.
 	file    *os.File
 	fileBuf *bufio.Reader
 
 	// Only set when opened in reading mode.
-	Entries []Entry
+	entries []Entry
 
 	// for reading only
 	entryBuf []byte
+	bowPool  []uint32
+	bowLast  int
+	dataPool []byte
+	dataLast int
 
 	// for writing only
 	writeBuf    *bytes.Buffer
 	writing     chan bow.Bower
 	wg          *sync.WaitGroup
 	writingDone chan struct{}
-	entries     chan Entry
+	entryChan   chan Entry
 }
 
 // IsStructure returns true if the underlying fragment library associated with
@@ -81,9 +87,18 @@ func OpenDB(dir string) (*DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	db.fileBuf = bufio.NewReader(db.file)
+	db.fileBuf = bufio.NewReaderSize(db.file, 1<<20)
+	return db, nil
+}
 
-	db.Entries = make([]Entry, 0, 10000)
+// ReadAll reads all entries from disk and returns them in a slice.
+// Subsequent calls do not read from disk; the already read entries are
+// returned.
+func (db *DB) ReadAll() ([]Entry, error) {
+	if db.entries != nil {
+		return db.entries, nil
+	}
+	db.entries = make([]Entry, 0, 10000)
 	for {
 		entry, err := db.read()
 		if err == io.EOF {
@@ -91,10 +106,9 @@ func OpenDB(dir string) (*DB, error) {
 		} else if err != nil {
 			return nil, err
 		}
-		db.Entries = append(db.Entries, *entry)
+		db.entries = append(db.entries, *entry)
 	}
-
-	return db, nil
+	return db.entries, nil
 }
 
 // CreateDB creates a new BOW database on disk at 'dir'. If the directory
@@ -123,7 +137,7 @@ func CreateDB(lib fragbag.Library, dir string) (*DB, error) {
 
 		writeBuf:    new(bytes.Buffer),
 		writing:     make(chan bow.Bower),
-		entries:     make(chan Entry),
+		entryChan:   make(chan Entry),
 		writingDone: make(chan struct{}),
 		wg:          new(sync.WaitGroup),
 	}
@@ -148,7 +162,7 @@ func CreateDB(lib fragbag.Library, dir string) (*DB, error) {
 		go func() {
 			db.wg.Add(1)
 			for bower := range db.writing {
-				db.entries <- db.NewEntry(bower)
+				db.entryChan <- db.NewEntry(bower)
 			}
 			db.wg.Done()
 		}()
@@ -156,7 +170,7 @@ func CreateDB(lib fragbag.Library, dir string) (*DB, error) {
 
 	// Now spin up a goroutine that is responsible for writing entries.
 	go func() {
-		for entry := range db.entries {
+		for entry := range db.entryChan {
 			if err = db.write(entry); err != nil {
 				log.Printf("Could not write to bow.db: %s", err)
 			}
@@ -197,7 +211,7 @@ func (db *DB) Close() error {
 	if db.writing != nil {
 		close(db.writing)
 		db.wg.Wait()
-		close(db.entries)
+		close(db.entryChan)
 		<-db.writingDone
 	}
 	return db.file.Close()
@@ -270,7 +284,7 @@ func (db *DB) read() (*Entry, error) {
 	if err := db.readItem(); err != nil {
 		return nil, err
 	}
-	data := make([]byte, len(db.entryBuf))
+	data := db.newData(len(db.entryBuf))
 	copy(data, db.entryBuf)
 
 	// Now read in the BOW.
@@ -282,11 +296,35 @@ func (db *DB) read() (*Entry, error) {
 			libSize*2, len(db.entryBuf))
 	}
 
-	freqs := make([]uint32, libSize)
+	freqs := db.newBow()
 	for i := 0; i < libSize; i++ {
 		freqs[i] = uint32(binary.BigEndian.Uint16(db.entryBuf[i*2:]))
 	}
 	return &Entry{id, data, bow.BOW{freqs}}, nil
+}
+
+func (db *DB) newBow() []uint32 {
+	libSize := db.Lib.Size()
+	if db.bowLast+libSize >= cap(db.bowPool) {
+		db.bowPool = make([]uint32, libSize*10000)
+		db.bowLast = 0
+	}
+	b := db.bowPool[db.bowLast : db.bowLast+libSize]
+	db.bowLast += libSize
+	return b
+}
+
+func (db *DB) newData(size int) []byte {
+	if size == 0 {
+		return nil
+	}
+	if db.dataLast+size >= cap(db.dataPool) {
+		db.dataPool = make([]byte, 5*(1<<20))
+		db.dataLast = 0
+	}
+	d := db.dataPool[db.dataLast : db.dataLast+size]
+	db.dataLast += size
+	return d
 }
 
 func (db *DB) readItem() error {
@@ -323,24 +361,6 @@ func (db *DB) readNBytes(n int) error {
 	}
 	return nil
 }
-
-// func (db *DB) readNBytes(n int) error {
-// if db.entryBuf == nil || n > cap(db.entryBuf) {
-// db.entryBuf = make([]byte, n)
-// }
-// db.entryBuf = db.entryBuf[0:n]
-//
-// if thisn, err := db.file.Read(db.entryBuf); err != nil {
-// if err == io.EOF {
-// return io.EOF
-// }
-// return fmt.Errorf("Error reading item: %s", err)
-// } else if thisn != n {
-// return fmt.Errorf("Expected item with length %d, but got %d",
-// n, thisn)
-// }
-// return nil
-// }
 
 func (db *DB) write(entry Entry) error {
 	libSize := db.Lib.Size()

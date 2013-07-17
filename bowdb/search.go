@@ -54,14 +54,24 @@ func newSearchResult(query, entry Entry) SearchResult {
 	}
 }
 
+// Search runs SearchEntry on the return value of NewEntry(query).
 func (db *DB) Search(opts SearchOptions, query bow.Bower) []SearchResult {
 	return db.SearchEntry(opts, db.NewEntry(query))
 }
 
+// SearchEntry currently performs an exhaustive search against the query
+// entry. The best N results are returned with respect to the options given.
+//
+// At this point in time, the ReadAll method must be called before invoking
+// a search, otherwise this function will panic. This requirement may be lifted
+// if indexed searching is added (to avoid exhaustive searching).
 func (db *DB) SearchEntry(opts SearchOptions, query Entry) []SearchResult {
 	tree := new(bst)
 
-	for _, entry := range db.Entries {
+	if db.entries == nil {
+		panic("The ReadAll method must be called before searching.")
+	}
+	for _, entry := range db.entries {
 		// Compute the distance between the query and the target.
 		var dist float64
 		switch opts.SortBy {

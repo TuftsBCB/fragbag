@@ -27,7 +27,10 @@ func main() {
 	bowOpts.Limit = -1
 
 	printf("QueryID\tResultID\tCosine\tEuclid\n")
-	for _, entry := range db.Entries {
+	entries, err := db.ReadAll()
+	util.Assert(err, "Could not read BOW database entries")
+
+	for _, entry := range entries {
 		results := db.SearchEntry(bowOpts, entry)
 
 		for _, result := range results {

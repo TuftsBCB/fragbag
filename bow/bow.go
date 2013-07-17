@@ -60,11 +60,12 @@ func (chain PDBChainStructure) Id() string {
 }
 
 func (chain PDBChainStructure) Data() []byte {
-	sequence := make([]byte, len(chain.Sequence))
-	for i := range chain.Sequence {
-		sequence[i] = byte(chain.Sequence[i])
-	}
-	return sequence
+	return nil
+	// sequence := make([]byte, len(chain.Sequence))
+	// for i := range chain.Sequence {
+	// sequence[i] = byte(chain.Sequence[i])
+	// }
+	// return sequence
 }
 
 func (chain PDBChainStructure) StructureBOW(lib *fragbag.StructureLibrary) BOW {
