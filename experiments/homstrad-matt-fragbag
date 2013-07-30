@@ -1,0 +1,128 @@
+#!/usr/bin/env python2.7
+
+import csv
+import glob
+import os.path as path
+
+import numpy as np
+
+import pybcb as bcb
+import pybcb.flags as flags
+
+flags.use_all('frag-lib',
+              'cpu', 'tmp-dir', 'results-dir',
+              'ignore-cache', 'no-cache')
+flags.use('homstrad-dir', (
+    lambda: flags.add(dest='homstrad_dir', type=str,
+                      help='The directory containing HOMSTRAD with PDB data.'),
+    flags.verify_path,
+))
+flags.use('align-type', (
+    lambda: flags.add('--align-type', type=str, default='bent',
+                      choices=['bent', 'unbent', 'homstrad'],
+                      help='The sequence alignment to use to find pairwise '
+                           'corresponding fragments.'),
+    None,
+))
+flags.init()
+
+bcb.set_exp_dir(flags.config.tmp_dir)
+bcb.set_results_dir(flags.config.results_dir)
+bcb.make()
+
+bcb.makedirs(bcb.ejoin('matt'))
+bcb.makedirs(bcb.ejoin(flags.config.align_type))
+bcb.makedirs(bcb.rjoin(flags.config.align_type))
+homstrad_pdbs = glob.glob(path.join(flags.config.homstrad_dir, '*', '*.pdb'))
+
+# Outline of experiment:
+#
+# 1. Run Matt bent alignment on the first two proteins in a Homstrad family.
+#
+# 2. In addition to the Homstrad sequence alignment (ali file), Matt produces
+#    two more sequence alignments: unbent and bent. Depending upon experiment
+#    parameters, use sequence alignment to find all pairwise contiguous
+#    fragments with size equal to the fragment size of the chosen fragment
+#    library. For each pair, compute the best fragment corresponding to each
+#    set of aligned alpha-carbon ATOM records.
+#
+# 3. Organize data by only saving sections with unequivalent best fragments.
+#    Also, provide a coverage statistic for each family and for all families:
+#    #fragments same / #all fragments
+
+
+# Step 1 - Run matt on first two entries in each Homstrad family.
+if flags.config.align_type in ('bent', 'unbent'):
+    for hpdb in homstrad_pdbs:
+        family = path.basename(path.dirname(hpdb))
+        bcb.makedirs(bcb.ejoin('matt', family))
+        prefix = bcb.ejoin('matt', family, family)
+        files = [
+            '%s.fasta' % prefix,
+            '%s.pdb' % prefix,
+            '%s_bent.fasta' % prefix,
+            '%s_bent.pdb' % prefix,
+        ]
+        bcb.cached_cmd(files,
+                       'matt', '-b', '-f', 'fasta,pdb',
+                       '-o', prefix,
+                       '%s:A' % hpdb,
+                       '%s:B' % hpdb)
+
+# Step 2 - Find best fragment for each contiguous pairwise fragment.
+# The output for each Homstrad family is a csv file with the following columns:
+# start1, end1, start2, end2, frag1, frag2, frag_rmsd
+# The start and end columns are in terms of the residue number in the PDB file.
+# The frag columns are just fragment numbers into the given fragment library.
+# Finally, frag_rmsd is the RMSD between the two fragments given.
+for hpdb in homstrad_pdbs:
+    family = path.basename(path.dirname(hpdb))
+    eoutcsv = bcb.ejoin(flags.config.align_type, '%s.csv' % family)
+    routcsv = bcb.rjoin(flags.config.align_type, '%s.csv' % family)
+
+    if flags.config.align_type == 'unbent':
+        falign = bcb.ejoin('matt', family, '%s.fasta' % family)
+        fpdb = bcb.ejoin('matt', family, '%s.pdb' % family)
+    elif flags.config.align_type == 'bent':
+        falign = bcb.ejoin('matt', family, '%s_bent.fasta' % family)
+        fpdb = bcb.ejoin('matt', family, '%s_bent.pdb' % family)
+    elif flags.config.align_type == 'homstrad':
+        falign = path.join(path.dirname(hpdb), '%s.ali' % family)
+        fpdb = hpdb
+    bcb.cached_cmd([eoutcsv],
+                   'best-pairwise-frag', '--all-fragments',
+                   flags.config.frag_lib, falign, fpdb, eoutcsv)
+    bcb.cached_cmd([routcsv],
+                   'best-pairwise-frag',
+                   flags.config.frag_lib, falign, fpdb, routcsv)
+
+# Step 3 - Process the CSV data in the experiment directory to produce coverage
+# statistics for each family and for all families.
+fcoverage = bcb.rjoin('%s.csv' % flags.config.align_type)
+def compute_coverage():
+    coverage = {}
+    allMatch, allRows = 0, 0
+    for bestFrags in glob.glob(bcb.ejoin(flags.config.align_type, '*.csv')):
+        matchRows, totalRows = 0, 0
+        for row in csv.DictReader(open(bestFrags), delimiter='\t'):
+            totalRows += 1
+            if row['frag1'] == row['frag2']:
+                matchRows += 1
+
+        family = path.splitext(path.basename(bestFrags))[0]
+        if totalRows == 0:
+            coverage[family] = 1.0
+        else:
+            coverage[family] = float(matchRows) / float(totalRows)
+        allMatch += matchRows
+        allRows += totalRows
+    w = open(fcoverage, 'w+')
+    print >> w, 'family\tcoverage'
+    print >> w, 'all\t%f' % (float(allMatch) / float(allRows))
+    print >> w, 'median\t%f' % np.median(coverage.values())
+    print >> w, 'mean\t%f' % np.mean(coverage.values())
+    print >> w, 'std\t%f' % np.std(coverage.values())
+    for family in sorted(coverage, key=lambda k: coverage[k]):
+        print >> w, '%s\t%s' % (family, coverage[family])
+    w.flush()
+bcb.cached([fcoverage], compute_coverage)
