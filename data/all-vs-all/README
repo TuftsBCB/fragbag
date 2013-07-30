@@ -1,0 +1,7 @@
+There are 6 matrix files: each has 2930 lines, and each line has 2930 entries.
+The ith line is for the distances to the ith domain (the distances are SAS).
+The matrices are upper triangular (i.e. you need to add them to the transpose to get all distances).
+You need to take these 6, and take the best-of-all, i.e. the lowest SAS found by any of the six methods.
+
+The labels of the 2930 domains is given in the file cath_domain_labels (the order in this file is the order in the matrices).
+
