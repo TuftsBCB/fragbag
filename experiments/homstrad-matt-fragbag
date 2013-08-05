@@ -1,5 +1,6 @@
 #!/usr/bin/env python2.7
 
+from collections import defaultdict
 import csv
 import glob
 import os.path as path
@@ -17,11 +18,24 @@ flags.use('homstrad-dir', (
                       help='The directory containing HOMSTRAD with PDB data.'),
     flags.verify_path,
 ))
-flags.use('align-type', (
-    lambda: flags.add('--align-type', type=str, default='bent',
+flags.use('seq-align', (
+    lambda: flags.add('--seq-align', type=str, default='bent',
                       choices=['bent', 'unbent', 'homstrad'],
                       help='The sequence alignment to use to find pairwise '
                            'corresponding fragments.'),
+    None,
+))
+flags.use('struct-align', (
+    lambda: flags.add('--struct-align', type=str, default='bent',
+                      choices=['bent', 'unbent', 'homstrad'],
+                      help='The structure alignment to use to find pairwise '
+                           'corresponding fragments.'),
+    None,
+))
+flags.use('disagreements', (
+    lambda: flags.add('--disagreements', action='store_true',
+                      help='When set, the fragment disagreements will be '
+                           'written in CSV format to the results directory.'),
     None,
 ))
 flags.init()
@@ -30,9 +44,15 @@ bcb.set_exp_dir(flags.config.tmp_dir)
 bcb.set_results_dir(flags.config.results_dir)
 bcb.make()
 
+flib_name = path.basename(flags.config.frag_lib)
+align_combo = '%s-%s' % (flags.config.seq_align, flags.config.struct_align)
+align_dir = path.join(flib_name, align_combo)
+
 bcb.makedirs(bcb.ejoin('matt'))
-bcb.makedirs(bcb.ejoin(flags.config.align_type))
-bcb.makedirs(bcb.rjoin(flags.config.align_type))
+bcb.makedirs(bcb.ejoin(align_dir))
+bcb.makedirs(bcb.rjoin(flib_name))
+if flags.config.disagreements:
+    bcb.makedirs(bcb.rjoin(align_dir))
 homstrad_pdbs = glob.glob(path.join(flags.config.homstrad_dir, '*', '*.pdb'))
 
 # Outline of experiment:
@@ -48,11 +68,15 @@ homstrad_pdbs = glob.glob(path.join(flags.config.homstrad_dir, '*', '*.pdb'))
 #
 # 3. Organize data by only saving sections with unequivalent best fragments.
 #    Also, provide a coverage statistic for each family and for all families:
-#    #fragments same / #all fragments
+#    #fragments same / #all fragments.
+#    Finally, provide a co-occurrence matrix with frequency counts for each
+#    pair of fragments that show up in a labeling.
 
 
-# Step 1 - Run matt on first two entries in each Homstrad family.
-if flags.config.align_type in ('bent', 'unbent'):
+# Step 1 - Run matt on first two entries in each Homstrad family if we're
+#          using bent or unbent in either alignment.
+if flags.config.seq_align in ('bent', 'unbent') \
+        or flags.config.struct_align in ('bent', 'unbent'):
     for hpdb in homstrad_pdbs:
         family = path.basename(path.dirname(hpdb))
         bcb.makedirs(bcb.ejoin('matt', family))
@@ -77,37 +101,52 @@ if flags.config.align_type in ('bent', 'unbent'):
 # Finally, frag_rmsd is the RMSD between the two fragments given.
 for hpdb in homstrad_pdbs:
     family = path.basename(path.dirname(hpdb))
-    eoutcsv = bcb.ejoin(flags.config.align_type, '%s.csv' % family)
-    routcsv = bcb.rjoin(flags.config.align_type, '%s.csv' % family)
+    eoutcsv = bcb.ejoin(align_dir, '%s.csv' % family)
+    routcsv = bcb.rjoin(align_dir, '%s.csv' % family)
 
-    if flags.config.align_type == 'unbent':
-        falign = bcb.ejoin('matt', family, '%s.fasta' % family)
-        fpdb = bcb.ejoin('matt', family, '%s.pdb' % family)
-    elif flags.config.align_type == 'bent':
-        falign = bcb.ejoin('matt', family, '%s_bent.fasta' % family)
-        fpdb = bcb.ejoin('matt', family, '%s_bent.pdb' % family)
-    elif flags.config.align_type == 'homstrad':
-        falign = path.join(path.dirname(hpdb), '%s.ali' % family)
-        fpdb = hpdb
+    if flags.config.seq_align == 'unbent':
+        seq_align = bcb.ejoin('matt', family, '%s.fasta' % family)
+    elif flags.config.seq_align == 'bent':
+        seq_align = bcb.ejoin('matt', family, '%s_bent.fasta' % family)
+    elif flags.config.seq_align == 'homstrad':
+        seq_align = path.join(path.dirname(hpdb), '%s.ali' % family)
+
+    if flags.config.struct_align == 'unbent':
+        struct_align = bcb.ejoin('matt', family, '%s.pdb' % family)
+    elif flags.config.struct_align == 'bent':
+        struct_align = bcb.ejoin('matt', family, '%s_bent.pdb' % family)
+    elif flags.config.struct_align == 'homstrad':
+        struct_align = hpdb
+
     bcb.cached_cmd([eoutcsv],
                    'best-pairwise-frag', '--all-fragments',
-                   flags.config.frag_lib, falign, fpdb, eoutcsv)
-    bcb.cached_cmd([routcsv],
-                   'best-pairwise-frag',
-                   flags.config.frag_lib, falign, fpdb, routcsv)
+                   flags.config.frag_lib, seq_align, struct_align, eoutcsv)
+    if flags.config.disagreements:
+        bcb.cached_cmd([routcsv],
+                       'best-pairwise-frag',
+                       flags.config.frag_lib, seq_align, struct_align, routcsv)
 
 # Step 3 - Process the CSV data in the experiment directory to produce coverage
 # statistics for each family and for all families.
-fcoverage = bcb.rjoin('%s.csv' % flags.config.align_type)
+fcoverage = bcb.rjoin(flib_name, '%s.csv' % align_combo)
+fmatrix = bcb.rjoin(flib_name, '%s-matrix.csv' % align_combo)
 def compute_coverage():
+    matrix = {}
+    def add_pair(f1, f2):
+        f1, f2 = sorted((int(f1), int(f2)))
+        if f1 not in matrix:
+            matrix[f1] = defaultdict(int)
+        matrix[f1][f2] += 1
+
     coverage = {}
     allMatch, allRows = 0, 0
-    for bestFrags in glob.glob(bcb.ejoin(flags.config.align_type, '*.csv')):
+    for bestFrags in glob.glob(bcb.ejoin(align_dir, '*.csv')):
         matchRows, totalRows = 0, 0
         for row in csv.DictReader(open(bestFrags), delimiter='\t'):
             totalRows += 1
             if row['frag1'] == row['frag2']:
                 matchRows += 1
+            add_pair(row['frag1'], row['frag2'])
 
         family = path.splitext(path.basename(bestFrags))[0]
         if totalRows == 0:
@@ -116,13 +155,19 @@ def compute_coverage():
             coverage[family] = float(matchRows) / float(totalRows)
         allMatch += matchRows
         allRows += totalRows
-    w = open(fcoverage, 'w+')
-    print >> w, 'family\tcoverage'
-    print >> w, 'all\t%f' % (float(allMatch) / float(allRows))
-    print >> w, 'median\t%f' % np.median(coverage.values())
-    print >> w, 'mean\t%f' % np.mean(coverage.values())
-    print >> w, 'std\t%f' % np.std(coverage.values())
-    for family in sorted(coverage, key=lambda k: coverage[k]):
-        print >> w, '%s\t%s' % (family, coverage[family])
-    w.flush()
-bcb.cached([fcoverage], compute_coverage)
+
+    with open(fcoverage, 'w+') as w:
+        print >> w, 'family\tcoverage'
+        print >> w, 'all\t%f' % (float(allMatch) / float(allRows))
+        print >> w, 'median\t%f' % np.median(coverage.values())
+        print >> w, 'mean\t%f' % np.mean(coverage.values())
+        print >> w, 'std\t%f' % np.std(coverage.values())
+        for family in sorted(coverage, key=lambda k: coverage[k]):
+            print >> w, '%s\t%s' % (family, coverage[family])
+    with open(fmatrix, 'w+') as w:
+        frags = sorted(matrix.keys())
+        print >> w, '#\t%s' % ('\t'.join(map(str, frags)))
+        for f1 in frags:
+            freqs = [matrix[f1][f2] for f2 in frags]
+            print >> w, '%d\t%s' % (f1, '\t'.join(map(str, freqs)))
+bcb.cached([fcoverage, fmatrix], compute_coverage)
