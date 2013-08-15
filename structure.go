@@ -1,7 +1,7 @@
 package fragbag
 
 import (
-	"encoding/gob"
+	"encoding/json"
 	"fmt"
 	"io"
 	"strings"
@@ -48,21 +48,13 @@ func (lib *StructureLibrary) Add(coords []structure.Coords) error {
 
 // Save saves the full fragment library to the writer provied.
 func (lib *StructureLibrary) Save(w io.Writer) error {
-	if err := writeKind(w, lib, kindStructure); err != nil {
-		return err
-	}
-	enc := gob.NewEncoder(w)
-	return enc.Encode(*lib)
+	return saveLibrary(w, kindStructure, lib)
 }
 
 // Open loads an existing structure fragment library from the reader provided.
-func OpenStructureLibrary(r io.Reader) (*StructureLibrary, error) {
-	if err := readKind(r, kindStructure); err != nil {
-		return nil, err
-	}
-
+func openStructureLibrary(r io.Reader) (*StructureLibrary, error) {
 	var lib *StructureLibrary
-	dec := gob.NewDecoder(r)
+	dec := json.NewDecoder(r)
 	if err := dec.Decode(&lib); err != nil {
 		return nil, err
 	}

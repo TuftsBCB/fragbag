@@ -2,9 +2,9 @@ package fragbag
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 )
 
 type Library interface {
@@ -27,21 +27,20 @@ type Library interface {
 	Name() string
 }
 
-type libKind byte
+type libKind string
 
 const (
-	kindStructure libKind = iota
-	kindSequence
+	kindStructure libKind = "structure"
+	kindSequence          = "sequence"
 )
 
 func (k libKind) String() string {
-	switch k {
-	case kindStructure:
-		return "structure"
-	case kindSequence:
-		return "sequence"
-	}
-	panic(fmt.Sprintf("Unknown fragment library type: %d", k))
+	return string(k)
+}
+
+type jsonLibrary struct {
+	Kind    libKind
+	Library json.RawMessage
 }
 
 // Open reads a library from the reader provided. If there is a problem
@@ -50,49 +49,42 @@ func (k libKind) String() string {
 // of the following types of fragment libraries:
 // StructureLibrary, SequenceLibrary.
 func Open(r io.Reader) (Library, error) {
-	all, err := ioutil.ReadAll(r)
-	if err != nil {
+	var jsonlib jsonLibrary
+	dec := json.NewDecoder(r)
+	if err := dec.Decode(&jsonlib); err != nil {
 		return nil, err
 	}
 
-	r = bytes.NewReader(all)
-	switch libKind(all[0]) {
+	switch jsonlib.Kind {
 	case kindStructure:
-		return OpenStructureLibrary(r)
+		return openStructureLibrary(bytes.NewReader(jsonlib.Library))
 	case kindSequence:
-		return OpenSequenceLibrary(r)
+		return openSequenceLibrary(bytes.NewReader(jsonlib.Library))
 	}
-	return nil, fmt.Errorf("Unknown fragment library type: %d", all[0])
+	return nil, fmt.Errorf("Unknown fragment library type: %s", jsonlib.Kind)
 }
 
-// writeKind writes the kind specified to the writer given.
-// The library is used to provided a descriptive error message if things go
-// bad.
-func writeKind(w io.Writer, lib Library, k libKind) error {
-	errPrefix := fmt.Sprintf("Error while saving '%s':", lib.Name())
-	if n, err := w.Write([]byte{byte(k)}); err != nil {
-		return fmt.Errorf("%s %s", errPrefix, err)
-	} else if n != 1 {
-		return fmt.Errorf("%s Wrote %d bytes instead of 1 byte.", errPrefix, n)
+// saveLibrary writes any library with the given kind as JSON data to w.
+func saveLibrary(w io.Writer, kind libKind, library interface{}) error {
+	jsonlib := map[string]interface{}{
+		"Kind":    kind,
+		"Library": library,
 	}
-	return nil
+	return niceJson(w, jsonlib)
 }
 
-// readKind reads a single byte from the reader and returns an error if it
-// does not match the kind expected.
-func readKind(r io.Reader, expected libKind) error {
-	kindBytes := make([]byte, 1)
-	if n, err := r.Read(kindBytes); err != nil {
+// niceJson is a convenience function for encoding a JSON value and writing
+// it with `json.Indent`.
+func niceJson(w io.Writer, v interface{}) error {
+	raw, dst := new(bytes.Buffer), new(bytes.Buffer)
+
+	enc := json.NewEncoder(raw)
+	if err := enc.Encode(v); err != nil {
 		return err
-	} else if n != 1 {
-		return fmt.Errorf("Error reading fragment library type: "+
-			"Read %d bytes instead of 1 byte.", n)
 	}
-
-	kind := libKind(kindBytes[0])
-	if kind != expected {
-		return fmt.Errorf("Expected a fragment library with type '%s', "+
-			"but got '%s' instead.", expected, kind)
+	if err := json.Indent(dst, raw.Bytes(), "", "\t"); err != nil {
+		return err
 	}
-	return nil
+	_, err := io.Copy(w, dst)
+	return err
 }

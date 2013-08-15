@@ -1,7 +1,7 @@
 package fragbag
 
 import (
-	"encoding/gob"
+	"encoding/json"
 	"fmt"
 	"io"
 
@@ -48,21 +48,13 @@ func (lib *SequenceLibrary) Add(prof *seq.Profile) error {
 
 // Save saves the full fragment library to the writer provied.
 func (lib *SequenceLibrary) Save(w io.Writer) error {
-	if err := writeKind(w, lib, kindSequence); err != nil {
-		return err
-	}
-	enc := gob.NewEncoder(w)
-	return enc.Encode(*lib)
+	return saveLibrary(w, kindSequence, lib)
 }
 
 // Open loads an existing structure fragment library from the reader provided.
-func OpenSequenceLibrary(r io.Reader) (*SequenceLibrary, error) {
-	if err := readKind(r, kindSequence); err != nil {
-		return nil, err
-	}
-
+func openSequenceLibrary(r io.Reader) (*SequenceLibrary, error) {
 	var lib *SequenceLibrary
-	dec := gob.NewDecoder(r)
+	dec := json.NewDecoder(r)
 	if err := dec.Decode(&lib); err != nil {
 		return nil, err
 	}
