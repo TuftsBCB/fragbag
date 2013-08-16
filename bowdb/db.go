@@ -16,6 +16,11 @@ import (
 	"github.com/TuftsBCB/fragbag/bow"
 )
 
+const (
+	fileBowDB   = "bow.db"
+	fileFragLib = "frag-lib.json"
+)
+
 // DB represents a BOW database. It is always connected to a particular
 // fragment library. In particular, the disk representation of the database is
 // a directory with a copy of the fragment library used to create the database
@@ -73,7 +78,7 @@ func OpenDB(dir string) (*DB, error) {
 		Name: path.Base(dir),
 	}
 
-	libf, err := os.Open(db.filePath("frag.lib"))
+	libf, err := os.Open(db.filePath(fileFragLib))
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +88,7 @@ func OpenDB(dir string) (*DB, error) {
 		return nil, err
 	}
 
-	db.file, err = os.Open(db.filePath("bow.db"))
+	db.file, err = os.Open(db.filePath(fileBowDB))
 	if err != nil {
 		return nil, err
 	}
@@ -142,13 +147,13 @@ func CreateDB(lib fragbag.Library, dir string) (*DB, error) {
 		wg:          new(sync.WaitGroup),
 	}
 
-	fp := db.filePath("bow.db")
+	fp := db.filePath(fileBowDB)
 	db.file, err = os.Create(fp)
 	if err != nil {
 		return nil, fmt.Errorf("Could not create '%s': %s", fp, err)
 	}
 
-	libfp := db.filePath("frag.lib")
+	libfp := db.filePath(fileFragLib)
 	libf, err := os.Create(libfp)
 	if err != nil {
 		return nil, fmt.Errorf("Could not create '%s': %s", libfp, err)
@@ -172,7 +177,7 @@ func CreateDB(lib fragbag.Library, dir string) (*DB, error) {
 	go func() {
 		for entry := range db.entryChan {
 			if err = db.write(entry); err != nil {
-				log.Printf("Could not write to bow.db: %s", err)
+				log.Printf("Could not write to %s: %s", fileBowDB, err)
 			}
 		}
 		db.writingDone <- struct{}{}
