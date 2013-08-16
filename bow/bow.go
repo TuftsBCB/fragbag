@@ -7,7 +7,7 @@ import (
 
 	"github.com/TuftsBCB/fragbag"
 	"github.com/TuftsBCB/io/pdb"
-	// "github.com/TuftsBCB/seq"
+	"github.com/TuftsBCB/seq"
 	"github.com/TuftsBCB/structure"
 )
 
@@ -38,13 +38,6 @@ type StructureBower interface {
 	StructureBOW(lib *fragbag.StructureLibrary) BOW
 }
 
-type SequenceBower interface {
-	Bower
-
-	// Computes a bag-of-words given a sequence fragment library.
-	SequenceBOW(lib *fragbag.SequenceLibrary) BOW
-}
-
 type PDBChainStructure struct {
 	*pdb.Chain
 }
@@ -61,11 +54,6 @@ func (chain PDBChainStructure) Id() string {
 
 func (chain PDBChainStructure) Data() []byte {
 	return nil
-	// sequence := make([]byte, len(chain.Sequence))
-	// for i := range chain.Sequence {
-	// sequence[i] = byte(chain.Sequence[i])
-	// }
-	// return sequence
 }
 
 func (chain PDBChainStructure) StructureBOW(lib *fragbag.StructureLibrary) BOW {
@@ -82,6 +70,42 @@ func StructureBOW(lib *fragbag.StructureLibrary, atoms []structure.Coords) BOW {
 	uplimit = len(atoms) - libSize
 	for i := 0; i <= uplimit; i++ {
 		best = lib.Best(atoms[i : i+libSize])
+		b.Freqs[best] += 1
+	}
+	return b
+}
+
+type SequenceBower interface {
+	Bower
+
+	// Computes a bag-of-words given a sequence fragment library.
+	SequenceBOW(lib *fragbag.SequenceLibrary) BOW
+}
+
+type Sequence struct {
+	seq.Sequence
+}
+
+func (s Sequence) Id() string {
+	return s.Name
+}
+
+func (s Sequence) Data() []byte {
+	return s.Bytes()
+}
+
+func (s Sequence) SequenceBOW(lib *fragbag.SequenceLibrary) BOW {
+	return SequenceBOW(lib, s.Sequence)
+}
+
+func SequenceBOW(lib *fragbag.SequenceLibrary, s seq.Sequence) BOW {
+	var best, uplimit int
+
+	b := NewBow(lib.Size())
+	libSize := lib.FragmentSize()
+	uplimit = s.Len() - libSize
+	for i := 0; i <= uplimit; i++ {
+		best = lib.Best(s.Slice(i, i+libSize))
 		b.Freqs[best] += 1
 	}
 	return b

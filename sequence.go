@@ -86,7 +86,18 @@ func (lib *SequenceLibrary) Name() string {
 // to the string of amino acids provided.
 // The length of `sequence` must be equivalent to the fragment size.
 func (lib *SequenceLibrary) Best(s seq.Sequence) int {
-	panic("unimplemented")
+	// Since fragments are guaranteed not to have gaps by construction,
+	// we can do a straight-forward summation of the negative log-odds
+	// probabilities corresponding to the residues in `s`.
+	var testAlign seq.Prob
+	bestAlign, bestFragNum := seq.MinProb, -1
+	for _, frag := range lib.Fragments {
+		testAlign = frag.AlignmentProb(s)
+		if bestFragNum == -1 || bestAlign.Less(testAlign) {
+			bestAlign, bestFragNum = testAlign, frag.Number
+		}
+	}
+	return bestFragNum
 }
 
 // Fragment corresponds to a single sequence fragment in a fragment library.
@@ -94,6 +105,21 @@ func (lib *SequenceLibrary) Best(s seq.Sequence) int {
 type SequenceFragment struct {
 	Number int
 	*seq.Profile
+}
+
+// AlignmentProb computes the probability of the sequence `s` aligning
+// with the profile in `frag`. The sequence must have length equivalent
+// to the fragment size.
+func (frag *SequenceFragment) AlignmentProb(s seq.Sequence) seq.Prob {
+	if s.Len() != frag.Len() {
+		panic(fmt.Sprintf("Sequence length %d != fragment size %d",
+			s.Len(), frag.Len()))
+	}
+	prob := seq.Prob(0.0)
+	for c := 0; c < s.Len(); c++ {
+		prob += frag.Emissions[c][s.Residues[c]]
+	}
+	return prob
 }
 
 func (frag *SequenceFragment) FragNumber() int {
