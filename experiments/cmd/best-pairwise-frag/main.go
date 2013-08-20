@@ -4,7 +4,6 @@ import (
 	"encoding/csv"
 	"flag"
 	"fmt"
-	// "strings"
 
 	"github.com/TuftsBCB/io/pdb"
 	"github.com/TuftsBCB/seq"
@@ -43,15 +42,6 @@ func main() {
 		pentry.Chains[0], pentry.Chains[1])
 	for iter.next() {
 		best1, best2 := flib.Best(iter.atoms1), flib.Best(iter.atoms2)
-		// s, e := iter.current, iter.current+iter.fragSize
-		// fmt.Printf("[%d, %d)\n", s, e)
-		// fmt.Printf("%s [%d, %d)\n",
-		// iter.seq1.Residues[s:e], iter.s1(), iter.e1())
-		// fmt.Printf("%s [%d, %d)\n",
-		// iter.seq2.Residues[s:e], iter.s2(), iter.e2())
-		// fmt.Println("Atom lengths: ", len(iter.atoms1), len(iter.atoms2))
-		// fmt.Printf("Bests: %d vs. %d\n", best1, best2)
-		// fmt.Printf("%s\n", strings.Repeat("-", 79))
 		if !flagAllFragments && best1 == best2 {
 			continue
 		}
