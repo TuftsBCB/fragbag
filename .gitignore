@@ -1,4 +1,4 @@
 .*.swp
 TAGS
-data/experiments
+data/pdb-all.fasta
 bin
