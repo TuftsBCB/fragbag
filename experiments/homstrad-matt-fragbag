@@ -27,9 +27,10 @@ flags.use('seq-align', (
 ))
 flags.use('struct-align', (
     lambda: flags.add('--struct-align', type=str, default='bent',
-                      choices=['bent', 'unbent', 'homstrad'],
+                      choices=['bent', 'unbent', 'homstrad', 'none'],
                       help='The structure alignment to use to find pairwise '
-                           'corresponding fragments.'),
+                           'corresponding fragments. If "none" is used, then '
+                           'fragments are compared in sequence space.'),
     None,
 ))
 flags.use('disagreements', (
@@ -117,14 +118,26 @@ for hpdb in homstrad_pdbs:
         struct_align = bcb.ejoin('matt', family, '%s_bent.pdb' % family)
     elif flags.config.struct_align == 'homstrad':
         struct_align = hpdb
+    elif flags.config.struct_align == 'none':
+        struct_align = None
 
-    bcb.cached_cmd([eoutcsv],
-                   'best-pairwise-frag', '--all-fragments',
-                   flags.config.frag_lib, seq_align, struct_align, eoutcsv)
-    if flags.config.disagreements:
-        bcb.cached_cmd([routcsv],
-                       'best-pairwise-frag',
-                       flags.config.frag_lib, seq_align, struct_align, routcsv)
+    if struct_align is None:
+        bcb.cached_cmd([eoutcsv],
+                       'best-pairwise-seqfrag', '--all-fragments',
+                       flags.config.frag_lib, seq_align, eoutcsv)
+        if flags.config.disagreements:
+            bcb.cached_cmd([routcsv],
+                           'best-pairwise-seqfrag',
+                           flags.config.frag_lib, seq_align, routcsv)
+    else:
+        bcb.cached_cmd([eoutcsv],
+                       'best-pairwise-frag', '--all-fragments',
+                       flags.config.frag_lib, seq_align, struct_align, eoutcsv)
+        if flags.config.disagreements:
+            bcb.cached_cmd([routcsv],
+                           'best-pairwise-frag',
+                           flags.config.frag_lib, seq_align,
+                           struct_align, routcsv)
 
 # Step 3 - Process the CSV data in the experiment directory to produce coverage
 # statistics for each family and for all families.
