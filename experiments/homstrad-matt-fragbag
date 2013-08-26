@@ -102,8 +102,8 @@ if flags.config.seq_align in ('bent', 'unbent') \
 # Finally, frag_rmsd is the RMSD between the two fragments given.
 for hpdb in homstrad_pdbs:
     family = path.basename(path.dirname(hpdb))
-    eoutcsv = bcb.ejoin(align_dir, '%s.csv' % family)
-    routcsv = bcb.rjoin(align_dir, '%s.csv' % family)
+    eoutcsv = bcb.ejoin(align_dir, '%s.tsv' % family)
+    routcsv = bcb.rjoin(align_dir, '%s.tsv' % family)
 
     if flags.config.seq_align == 'unbent':
         seq_align = bcb.ejoin('matt', family, '%s.fasta' % family)
@@ -141,8 +141,8 @@ for hpdb in homstrad_pdbs:
 
 # Step 3 - Process the CSV data in the experiment directory to produce coverage
 # statistics for each family and for all families.
-fcoverage = bcb.rjoin(flib_name, '%s.csv' % align_combo)
-fmatrix = bcb.rjoin(flib_name, '%s-matrix.csv' % align_combo)
+fcoverage = bcb.rjoin(flib_name, '%s.tsv' % align_combo)
+fmatrix = bcb.rjoin(flib_name, '%s-matrix.tsv' % align_combo)
 def compute_coverage():
     matrix = {}
     def add_pair(f1, f2):
@@ -153,7 +153,7 @@ def compute_coverage():
 
     coverage = {}
     allMatch, allRows = 0, 0
-    for bestFrags in glob.glob(bcb.ejoin(align_dir, '*.csv')):
+    for bestFrags in glob.glob(bcb.ejoin(align_dir, '*.tsv')):
         matchRows, totalRows = 0, 0
         for row in csv.DictReader(open(bestFrags), delimiter='\t'):
             totalRows += 1

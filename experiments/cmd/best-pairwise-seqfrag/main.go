@@ -32,12 +32,20 @@ func main() {
 	pf := func(record ...string) {
 		util.Assert(csvWriter.Write(record), "Problem writing to '%s'", outcsv)
 	}
-	pf("start1", "end1", "start2", "end2", "frag1", "frag2")
+	pf("start1", "end1", "start2", "end2", "frag1", "frag2", "rat1", "rat2")
 	iter := newContiguous(
 		flib.FragmentSize(), aligned.GetFasta(0), aligned.GetFasta(1))
 	for iter.next() {
 		best1, best2 := flib.Best(iter.res1), flib.Best(iter.res2)
 		if !flagAllFragments && best1 == best2 {
+			continue
+		}
+		if best1 == -1 || best2 == -1 {
+			continue
+		}
+		p1 := flib.Fragments[best1].AlignmentProb(iter.res1)
+		p2 := flib.Fragments[best2].AlignmentProb(iter.res2)
+		if p1.Distance(p2) > 0.14 {
 			continue
 		}
 		pf(
@@ -47,6 +55,8 @@ func main() {
 			fmt.Sprintf("%d", iter.e2()),
 			fmt.Sprintf("%d", best1),
 			fmt.Sprintf("%d", best2),
+			fmt.Sprintf("%f", p1),
+			fmt.Sprintf("%f", p2),
 		)
 	}
 }

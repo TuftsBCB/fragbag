@@ -85,6 +85,9 @@ func (lib *SequenceLibrary) Name() string {
 // Best returns the number of the fragment that best corresponds
 // to the string of amino acids provided.
 // The length of `sequence` must be equivalent to the fragment size.
+//
+// If no "good" fragments can be found, then `-1` is returned. This
+// behavior will almost certainly change in the future.
 func (lib *SequenceLibrary) Best(s seq.Sequence) int {
 	// Since fragments are guaranteed not to have gaps by construction,
 	// we can do a straight-forward summation of the negative log-odds
@@ -93,7 +96,7 @@ func (lib *SequenceLibrary) Best(s seq.Sequence) int {
 	bestAlign, bestFragNum := seq.MinProb, -1
 	for _, frag := range lib.Fragments {
 		testAlign = frag.AlignmentProb(s)
-		if bestFragNum == -1 || bestAlign.Less(testAlign) {
+		if bestAlign.Less(testAlign) {
 			bestAlign, bestFragNum = testAlign, frag.Number
 		}
 	}
