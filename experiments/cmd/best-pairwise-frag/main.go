@@ -46,8 +46,8 @@ func main() {
 			continue
 		}
 		bestRmsd := structure.RMSD(
-			flib.Fragments[best1].Atoms,
-			flib.Fragments[best2].Atoms,
+			flib.Fragment(best1).Atoms(),
+			flib.Fragment(best2).Atoms(),
 		)
 		pf(
 			fmt.Sprintf("%d", iter.s1()),

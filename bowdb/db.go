@@ -56,7 +56,7 @@ type DB struct {
 // this BOW database is based on structure fragments. This value is guaranteed
 // to be mutually exclusive with the return value of IsSequence.
 func (db *DB) IsStructure() bool {
-	_, ok := db.Lib.(*fragbag.StructureLibrary)
+	_, ok := db.Lib.(fragbag.StructureLibrary)
 	return ok
 }
 
@@ -64,7 +64,7 @@ func (db *DB) IsStructure() bool {
 // this BOW database is based on sequence fragments. This value is guaranteed
 // to be mutually exclusive with the return value of IsStructure.
 func (db *DB) IsSequence() bool {
-	_, ok := db.Lib.(*fragbag.SequenceLibrary)
+	_, ok := db.Lib.(fragbag.SequenceLibrary)
 	return ok
 }
 
@@ -245,14 +245,14 @@ type Entry struct {
 
 func (db *DB) NewEntry(bower bow.Bower) Entry {
 	switch lib := db.Lib.(type) {
-	case *fragbag.StructureLibrary:
+	case fragbag.StructureLibrary:
 		b := bower.(bow.StructureBower)
 		return Entry{
 			b.Id(),
 			bower.Data(),
 			b.StructureBOW(lib),
 		}
-	case *fragbag.SequenceLibrary:
+	case fragbag.SequenceLibrary:
 		b := bower.(bow.SequenceBower)
 		return Entry{
 			b.Id(),

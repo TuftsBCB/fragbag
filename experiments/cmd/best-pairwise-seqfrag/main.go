@@ -43,8 +43,8 @@ func main() {
 		if best1 == -1 || best2 == -1 {
 			continue
 		}
-		p1 := flib.Fragments[best1].AlignmentProb(iter.res1)
-		p2 := flib.Fragments[best2].AlignmentProb(iter.res2)
+		p1 := flib.Fragment(best1).AlignmentProb(iter.res1)
+		p2 := flib.Fragment(best2).AlignmentProb(iter.res2)
 		if p1.Distance(p2) > 0.14 {
 			continue
 		}

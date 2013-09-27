@@ -35,7 +35,7 @@ type StructureBower interface {
 	// This is made easier by using pre-defined types in this package that
 	// implement this interface. (Similar to how the standard library sort
 	// package is designed.)
-	StructureBOW(lib *fragbag.StructureLibrary) BOW
+	StructureBOW(lib fragbag.StructureLibrary) BOW
 }
 
 type PDBChainStructure struct {
@@ -56,13 +56,13 @@ func (chain PDBChainStructure) Data() []byte {
 	return nil
 }
 
-func (chain PDBChainStructure) StructureBOW(lib *fragbag.StructureLibrary) BOW {
+func (chain PDBChainStructure) StructureBOW(lib fragbag.StructureLibrary) BOW {
 	return StructureBOW(lib, chain.CaAtoms())
 }
 
 // StructureBOW is a helper function to compute a bag-of-words given a
 // structure fragment library and a list of alpha-carbon atoms.
-func StructureBOW(lib *fragbag.StructureLibrary, atoms []structure.Coords) BOW {
+func StructureBOW(lib fragbag.StructureLibrary, atoms []structure.Coords) BOW {
 	var best, uplimit int
 
 	b := NewBow(lib.Size())
@@ -79,7 +79,7 @@ type SequenceBower interface {
 	Bower
 
 	// Computes a bag-of-words given a sequence fragment library.
-	SequenceBOW(lib *fragbag.SequenceLibrary) BOW
+	SequenceBOW(lib fragbag.SequenceLibrary) BOW
 }
 
 type Sequence struct {
@@ -94,11 +94,11 @@ func (s Sequence) Data() []byte {
 	return s.Bytes()
 }
 
-func (s Sequence) SequenceBOW(lib *fragbag.SequenceLibrary) BOW {
+func (s Sequence) SequenceBOW(lib fragbag.SequenceLibrary) BOW {
 	return SequenceBOW(lib, s.Sequence)
 }
 
-func SequenceBOW(lib *fragbag.SequenceLibrary, s seq.Sequence) BOW {
+func SequenceBOW(lib fragbag.SequenceLibrary, s seq.Sequence) BOW {
 	var best, uplimit int
 
 	b := NewBow(lib.Size())

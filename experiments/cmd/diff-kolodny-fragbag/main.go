@@ -23,7 +23,7 @@ type oldStyle struct {
 	*pdb.Entry
 }
 
-func (e oldStyle) StructureBOW(lib *fragbag.StructureLibrary) bow.BOW {
+func (e oldStyle) StructureBOW(lib fragbag.StructureLibrary) bow.BOW {
 	smushed := make([]structure.Coords, 0)
 	for _, chain := range e.Chains {
 		for _, model := range chain.Models {
@@ -37,7 +37,7 @@ type newStyle struct {
 	*pdb.Entry
 }
 
-func (e newStyle) StructureBOW(lib *fragbag.StructureLibrary) bow.BOW {
+func (e newStyle) StructureBOW(lib fragbag.StructureLibrary) bow.BOW {
 	bag := bow.NewBow(lib.Size())
 	for _, chain := range e.Chains {
 		for _, model := range chain.Models {

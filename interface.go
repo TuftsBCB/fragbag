@@ -5,6 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+
+	"github.com/TuftsBCB/seq"
+	"github.com/TuftsBCB/structure"
 )
 
 type Library interface {
@@ -27,11 +30,36 @@ type Library interface {
 	Name() string
 }
 
+type StructureLibrary interface {
+	Library
+	Best([]structure.Coords) int
+	Fragment(i int) StructureFragment
+}
+
+type StructureFragment interface {
+	Number() int
+	String() string
+	Atoms() []structure.Coords
+}
+
+type SequenceLibrary interface {
+	Library
+	Best(seq.Sequence) int
+	Fragment(i int) SequenceFragment
+}
+
+type SequenceFragment interface {
+	Number() int
+	String() string
+	AlignmentProb(seq.Sequence) seq.Prob
+}
+
 type libKind string
 
 const (
-	kindStructure libKind = "structure"
-	kindSequence          = "sequence"
+	kindStructureAtoms  libKind = "structure-atoms"
+	kindSequenceProfile         = "sequence-profile"
+	kindSequenceHMM             = "sequence-hmm"
 )
 
 func (k libKind) String() string {
@@ -56,10 +84,12 @@ func Open(r io.Reader) (Library, error) {
 	}
 
 	switch jsonlib.Kind {
-	case kindStructure:
-		return openStructureLibrary(bytes.NewReader(jsonlib.Library))
-	case kindSequence:
-		return openSequenceLibrary(bytes.NewReader(jsonlib.Library))
+	case kindStructureAtoms:
+		return openStructureAtoms(bytes.NewReader(jsonlib.Library))
+	case kindSequenceProfile:
+		return openSequenceProfile(bytes.NewReader(jsonlib.Library))
+		// case kindSequenceHMM:
+		// return openSequenceHMM(bytes.NewReader(jsonlib.Library))
 	}
 	return nil, fmt.Errorf("Unknown fragment library type: %s", jsonlib.Kind)
 }
