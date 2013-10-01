@@ -125,11 +125,7 @@ func (frag SequenceHMMFrag) AlignmentProb(s seq.Sequence) seq.Prob {
 		panic(fmt.Sprintf("Sequence length %d != fragment size %d",
 			s.Len(), len(frag.Nodes)))
 	}
-	prob := seq.Prob(0.0)
-	// for c := 0; c < s.Len(); c++ { 
-		// prob += frag.Emissions[c][s.Residues[c]] 
-	// } 
-	return prob
+	return frag.ViterbiScore(s)
 }
 
 func (frag SequenceHMMFrag) Number() int {
