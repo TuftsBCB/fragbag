@@ -83,13 +83,14 @@ func Open(r io.Reader) (Library, error) {
 		return nil, err
 	}
 
+	bytesr := bytes.NewReader(jsonlib.Library)
 	switch jsonlib.Kind {
 	case kindStructureAtoms:
-		return openStructureAtoms(bytes.NewReader(jsonlib.Library))
+		return openStructureAtoms(bytesr)
 	case kindSequenceProfile:
-		return openSequenceProfile(bytes.NewReader(jsonlib.Library))
-		// case kindSequenceHMM:
-		// return openSequenceHMM(bytes.NewReader(jsonlib.Library))
+		return openSequenceProfile(bytesr)
+	case kindSequenceHMM:
+		return openSequenceHMM(bytesr)
 	}
 	return nil, fmt.Errorf("Unknown fragment library type: %s", jsonlib.Kind)
 }
