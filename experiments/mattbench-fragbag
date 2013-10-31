@@ -93,7 +93,7 @@ bcb.cached_cmd([fclusters],
 clusters = []
 for row in csv.reader(open(fclusters)):
     clusters.append(row)
-clusters = random.sample(clusters, len(clusters) / 10)
+clusters = random.sample(clusters, len(clusters))
 
 stats = []
 for i in xrange(flags.config.iters):
