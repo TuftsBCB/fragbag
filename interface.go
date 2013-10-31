@@ -95,6 +95,20 @@ func Open(r io.Reader) (Library, error) {
 	return nil, fmt.Errorf("Unknown fragment library type: %s", jsonlib.Kind)
 }
 
+// IsSequence returns true if the given library is a sequence fragment library.
+// Returns false otherwise.
+func IsSequence(lib Library) bool {
+	_, ok := lib.(SequenceLibrary)
+	return ok
+}
+
+// IsStructure returns true if the given library is a structure fragment
+// library. Returns false otherwise.
+func IsStructure(lib Library) bool {
+	_, ok := lib.(StructureLibrary)
+	return ok
+}
+
 // saveLibrary writes any library with the given kind as JSON data to w.
 func saveLibrary(w io.Writer, kind libKind, library interface{}) error {
 	jsonlib := map[string]interface{}{
