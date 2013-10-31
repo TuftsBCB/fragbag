@@ -87,7 +87,7 @@ type Sequence struct {
 }
 
 func (s Sequence) Id() string {
-	return s.Name
+	return strings.Fields(s.Name)[0]
 }
 
 func (s Sequence) Data() []byte {
