@@ -96,13 +96,15 @@ func (lib *SequenceHMM) Name() string {
 // If no "good" fragments can be found, then `-1` is returned. This
 // behavior will almost certainly change in the future.
 func (lib *SequenceHMM) Best(s seq.Sequence) int {
-	// Since fragments are guaranteed not to have gaps by construction,
-	// we can do a straight-forward summation of the negative log-odds
-	// probabilities corresponding to the residues in `s`.
+	if s.Len() != lib.FragmentSize() {
+		panic(fmt.Sprintf("Sequence length %d != fragment size %d",
+			s.Len(), lib.FragmentSize()))
+	}
 	var testAlign seq.Prob
+	dynamicTable := seq.AllocTable(lib.FragmentSize(), s.Len())
 	bestAlign, bestFragNum := seq.MinProb, -1
 	for _, frag := range lib.Fragments {
-		testAlign = frag.AlignmentProb(s)
+		testAlign = frag.ViterbiScoreMem(s, dynamicTable)
 		if bestAlign.Less(testAlign) {
 			bestAlign, bestFragNum = testAlign, frag.FragNumber
 		}
