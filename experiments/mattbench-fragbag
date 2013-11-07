@@ -53,6 +53,11 @@ flags.use('iters', (
                       help='The number of iterations to run the experiment.'),
     None,
 ))
+flags.use('neighbors', (
+    lambda: flags.add('--neighbors', type=int, default=10,
+                      help='The number of neighbors to search for closest.'),
+    None,
+))
 flags.init()
 
 bcb.set_exp_dir(flags.config.tmp_dir)
@@ -92,16 +97,15 @@ bcb.cached_cmd([fclusters],
 # (2)
 clusters = []
 for row in csv.reader(open(fclusters)):
-    clusters.append(row)
-clusters = random.sample(clusters, len(clusters))
+    cluster = filter(lambda d: bcb.readable(scop_path(d)), row)
+    if len(cluster) > 1:
+        clusters.append(row)
+# clusters = random.sample(clusters, len(clusters)) 
 
 stats = []
 for i in xrange(flags.config.iters):
     twins = {}
     for c in clusters:
-        c = filter(lambda d: bcb.readable(scop_path(d)), c)
-        if len(c) <= 1:
-            continue
         d1, d2 = random.sample(c, 2)
         twins[d1] = d2
         twins[d2] = d1
@@ -119,15 +123,18 @@ for i in xrange(flags.config.iters):
     for d, twin in twins.items():
         total += 1
 
-        closest = min(dists[d])[1]
-        if twin == closest:
+        neighbors = [n for _, n in sorted(dists[d])]
+        ubound = min(len(neighbors), flags.config.neighbors)
+        if twin in neighbors[0:ubound]:
             correct += 1
     stats.append({'correct': correct, 'total': total})
 
 # (3)
 def acc(stat):
     return 100 * float(stat['correct']) / float(stat['total'])
-out = path.join(outdir, '%s-%d' % (flib_name, flags.config.iters))
+outname = '%s_iters%d_neighbors%d' \
+          % (flib_name, flags.config.iters, flags.config.neighbors)
+out = path.join(outdir, outname)
 
 totaled = {'correct': 0, 'total': 0}
 for stat in stats:
@@ -136,6 +143,7 @@ for stat in stats:
 
 print out
 outf = open(out, 'w+')
+print >> outf, 'Clusters: %d' % len(clusters)
 print >> outf, 'Mean accuracy:  %f' % np.mean(map(acc, stats))
 print >> outf, 'Total accuracy: %f (%d/%d)' \
                % (acc(totaled), totaled['correct'], totaled['total'])
