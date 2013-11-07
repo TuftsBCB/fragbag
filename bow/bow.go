@@ -106,6 +106,9 @@ func SequenceBOW(lib fragbag.SequenceLibrary, s seq.Sequence) BOW {
 	uplimit = s.Len() - libSize
 	for i := 0; i <= uplimit; i++ {
 		best = lib.Best(s.Slice(i, i+libSize))
+		if best < 0 {
+			continue
+		}
 		b.Freqs[best] += 1
 	}
 	return b
