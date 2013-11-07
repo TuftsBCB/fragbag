@@ -125,7 +125,7 @@ func (frag SequenceProfileFrag) AlignmentProb(s seq.Sequence) seq.Prob {
 	}
 	prob := seq.Prob(0.0)
 	for c := 0; c < s.Len(); c++ {
-		prob += frag.Emissions[c][s.Residues[c]]
+		prob += frag.Emissions[c].Lookup(s.Residues[c])
 	}
 	return prob
 }
