@@ -121,13 +121,13 @@ type BOW struct {
 	// Freqs is a map from fragment number to the number of occurrences of
 	// that fragment in this "bag of words." This map always has size
 	// equivalent to the size of the library.
-	Freqs []uint32
+	Freqs []float32
 }
 
 // NewBow returns a bag-of-words with all fragment frequencies set to 0.
 func NewBow(size int) BOW {
 	bow := BOW{
-		Freqs: make([]uint32, size),
+		Freqs: make([]float32, size),
 	}
 	for i := 0; i < size; i++ {
 		bow.Freqs[i] = 0
@@ -173,7 +173,7 @@ func (bow1 BOW) Add(bow2 BOW) BOW {
 // Euclid returns the euclidean distance between bow1 and bow2.
 func (bow1 BOW) Euclid(bow2 BOW) float64 {
 	f1, f2 := bow1.Freqs, bow2.Freqs
-	squareSum := uint32(0)
+	squareSum := float32(0)
 	libsize := bow1.Len()
 	for i := 0; i < libsize; i++ {
 		squareSum += (f2[i] - f1[i]) * (f2[i] - f1[i])
@@ -186,11 +186,11 @@ func (bow1 BOW) Cosine(bow2 BOW) float64 {
 	// This function is a hot-spot, so we manually inline the Dot
 	// and Magnitude computations.
 
-	var dot, mag1, mag2 uint32
+	var dot, mag1, mag2 float32
 	libs := len(bow1.Freqs)
 	freqs1, freqs2 := bow1.Freqs, bow2.Freqs
 
-	var f1, f2 uint32
+	var f1, f2 float32
 	for i := 0; i < libs; i++ {
 		f1, f2 = freqs1[i], freqs2[i]
 		dot += f1 * f2
@@ -206,7 +206,7 @@ func (bow1 BOW) Cosine(bow2 BOW) float64 {
 
 // Dot returns the dot product of bow1 and bow2.
 func (bow1 BOW) Dot(bow2 BOW) float64 {
-	dot := uint32(0)
+	dot := float32(0)
 	libsize := bow1.Len()
 	f1, f2 := bow1.Freqs, bow2.Freqs
 	for i := 0; i < libsize; i++ {
@@ -217,7 +217,7 @@ func (bow1 BOW) Dot(bow2 BOW) float64 {
 
 // Magnitude returns the vector length of the bow.
 func (bow BOW) Magnitude() float64 {
-	mag := uint32(0)
+	mag := float32(0)
 	libsize := bow.Len()
 	fs := bow.Freqs
 	for i := 0; i < libsize; i++ {
@@ -237,7 +237,7 @@ func (bow BOW) String() string {
 	for i := 0; i < bow.Len(); i++ {
 		freq := bow.Freqs[i]
 		if freq > 0 {
-			pieces = append(pieces, fmt.Sprintf("%d: %d", i, freq))
+			pieces = append(pieces, fmt.Sprintf("%f: %f", i, freq))
 		}
 	}
 	return fmt.Sprintf("{%s}", strings.Join(pieces, ", "))

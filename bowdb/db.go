@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math"
 	"os"
 	"path"
 	"runtime"
@@ -39,7 +40,7 @@ type DB struct {
 
 	// for reading only
 	entryBuf []byte
-	bowPool  []uint32
+	bowPool  []float32
 	bowLast  int
 	dataPool []byte
 	dataLast int
@@ -296,22 +297,23 @@ func (db *DB) read() (*Entry, error) {
 	if err := db.readItem(); err != nil {
 		return nil, err
 	}
-	if len(db.entryBuf) != libSize*2 {
+	if len(db.entryBuf) != libSize*4 {
 		return nil, fmt.Errorf("Expected %d bytes for BOW vector but got %d",
-			libSize*2, len(db.entryBuf))
+			libSize*4, len(db.entryBuf))
 	}
 
 	freqs := db.newBow()
 	for i := 0; i < libSize; i++ {
-		freqs[i] = uint32(binary.BigEndian.Uint16(db.entryBuf[i*2:]))
+		freqs[i] = math.Float32frombits(
+			binary.BigEndian.Uint32(db.entryBuf[i*4:]))
 	}
 	return &Entry{id, data, bow.BOW{freqs}}, nil
 }
 
-func (db *DB) newBow() []uint32 {
+func (db *DB) newBow() []float32 {
 	libSize := db.Lib.Size()
 	if db.bowLast+libSize >= cap(db.bowPool) {
-		db.bowPool = make([]uint32, libSize*10000)
+		db.bowPool = make([]float32, libSize*10000)
 		db.bowLast = 0
 	}
 	b := db.bowPool[db.bowLast : db.bowLast+libSize]
@@ -381,7 +383,7 @@ func (db *DB) write(entry Entry) error {
 	}
 
 	for i := 0; i < libSize; i++ {
-		f := uint16(entry.BOW.Freqs[i])
+		f := entry.BOW.Freqs[i]
 		if err := binary.Write(db.writeBuf, binary.BigEndian, f); err != nil {
 			return fmt.Errorf("Could not write BOW for '%s': %s", entry.Id, err)
 		}
