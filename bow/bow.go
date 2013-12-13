@@ -62,6 +62,9 @@ func (chain PDBChainStructure) StructureBOW(lib fragbag.StructureLibrary) BOW {
 
 // StructureBOW is a helper function to compute a bag-of-words given a
 // structure fragment library and a list of alpha-carbon atoms.
+//
+// If the lib given is a weighted library, then the BOW returned will also
+// be weighted.
 func StructureBOW(lib fragbag.StructureLibrary, atoms []structure.Coords) BOW {
 	var best, uplimit int
 
@@ -69,8 +72,11 @@ func StructureBOW(lib fragbag.StructureLibrary, atoms []structure.Coords) BOW {
 	libSize := lib.FragmentSize()
 	uplimit = len(atoms) - libSize
 	for i := 0; i <= uplimit; i++ {
-		best = lib.Best(atoms[i : i+libSize])
+		best = lib.BestStructureFragment(atoms[i : i+libSize])
 		b.Freqs[best] += 1
+	}
+	if wlib, ok := lib.(fragbag.WeightedLibrary); ok {
+		b = b.Weighted(wlib)
 	}
 	return b
 }
@@ -98,6 +104,11 @@ func (s Sequence) SequenceBOW(lib fragbag.SequenceLibrary) BOW {
 	return SequenceBOW(lib, s.Sequence)
 }
 
+// SequenceBOW is a helper function to compute a bag-of-words given a
+// sequence fragment library and a query sequence.
+//
+// If the lib given is a weighted library, then the BOW returned will also
+// be weighted.
 func SequenceBOW(lib fragbag.SequenceLibrary, s seq.Sequence) BOW {
 	var best, uplimit int
 
@@ -105,11 +116,14 @@ func SequenceBOW(lib fragbag.SequenceLibrary, s seq.Sequence) BOW {
 	libSize := lib.FragmentSize()
 	uplimit = s.Len() - libSize
 	for i := 0; i <= uplimit; i++ {
-		best = lib.Best(s.Slice(i, i+libSize))
+		best = lib.BestSequenceFragment(s.Slice(i, i+libSize))
 		if best < 0 {
 			continue
 		}
 		b.Freqs[best] += 1
+	}
+	if wlib, ok := lib.(fragbag.WeightedLibrary); ok {
+		b = b.Weighted(wlib)
 	}
 	return b
 }
@@ -133,6 +147,23 @@ func NewBow(size int) BOW {
 		bow.Freqs[i] = 0
 	}
 	return bow
+}
+
+// Weighted transforms any BOW into a weighted BOW with the scheme in the given
+// weighted fragment library. The BOW size must be equivalent to the size of
+// the library given.
+func (bow BOW) Weighted(lib fragbag.WeightedLibrary) BOW {
+	if bow.Len() != lib.Size() {
+		panic(fmt.Sprintf("Cannot weight BOW with a library of a different "+
+			"size. BOW has size %d while library (%s) has size %d.",
+			bow.Len(), lib.Name(), lib.Size()))
+	}
+
+	weighted := NewBow(bow.Len())
+	for i := 0; i < weighted.Len(); i++ {
+		weighted.Freqs[i] = lib.AddWeights(i, bow.Freqs[i])
+	}
+	return weighted
 }
 
 // Len returns the size of the vector. This is always equivalent to the

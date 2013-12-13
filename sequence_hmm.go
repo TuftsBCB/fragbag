@@ -1,28 +1,51 @@
 package fragbag
 
 import (
-	"encoding/json"
 	"fmt"
-	"io"
 
 	"github.com/TuftsBCB/seq"
 )
 
-// SequenceHMM represents a Fragbag sequence fragment library.
+var _ = SequenceLibrary(&sequenceHMM{})
+
+// sequenceHMM represents a Fragbag sequence fragment library.
 // Fragbag fragment libraries are fixed both in the number of fragments and in
 // the size of each fragment.
-type SequenceHMM struct {
+type sequenceHMM struct {
 	Ident     string
-	Fragments []SequenceHMMFrag
+	Fragments []sequenceHMMFrag
 	FragSize  int
 }
 
+// Fragment corresponds to a single sequence fragment in a fragment library.
+// It holds the fragment number identifier and embeds an HMM.
+type sequenceHMMFrag struct {
+	FragNumber int
+	*seq.HMM
+}
+
 // NewSequenceHMM initializes a new Fragbag sequence library with the
-// given name. It is not written to disk until Save is called.
-func NewSequenceHMM(name string) *SequenceHMM {
-	lib := new(SequenceHMM)
+// given name and fragments.
+//
+// Fragments for this library are represented as profile HMMs. Computing the
+// best fragment for any particular sequence uses the score produced by
+// Viterbi.
+func NewSequenceHMM(
+	name string,
+	fragments []*seq.HMM,
+) (SequenceLibrary, error) {
+	lib := new(sequenceHMM)
 	lib.Ident = name
-	return lib
+	for _, frag := range fragments {
+		if err := lib.add(frag); err != nil {
+			return nil, err
+		}
+	}
+	return lib, nil
+}
+
+func (lib *sequenceHMM) SubLibrary() Library {
+	return nil
 }
 
 // Add adds a sequence fragment to the library, where a sequence fragment
@@ -31,61 +54,45 @@ func NewSequenceHMM(name string) *SequenceHMM {
 // The first time Add is called, the HMM may have any number of nodes. All
 // subsequent calls to Add must supply an HMM with the number of nodes
 // equal to the first HMM added.
-func (lib *SequenceHMM) Add(hmm *seq.HMM) error {
+func (lib *sequenceHMM) add(hmm *seq.HMM) error {
 	if lib.Fragments == nil || len(lib.Fragments) == 0 {
-		frag := SequenceHMMFrag{0, hmm}
+		frag := sequenceHMMFrag{0, hmm}
 		lib.Fragments = append(lib.Fragments, frag)
 		lib.FragSize = len(hmm.Nodes)
 		return nil
 	}
 
-	frag := SequenceHMMFrag{len(lib.Fragments), hmm}
+	frag := sequenceHMMFrag{len(lib.Fragments), hmm}
 	if lib.FragSize != len(hmm.Nodes) {
 		return fmt.Errorf("Fragment %d has length %d; expected length %d.",
-			frag.Number(), len(hmm.Nodes), lib.FragSize)
+			frag.FragNumber, len(hmm.Nodes), lib.FragSize)
 	}
 	lib.Fragments = append(lib.Fragments, frag)
 	return nil
 }
 
-// Save saves the full fragment library to the writer provied.
-func (lib *SequenceHMM) Save(w io.Writer) error {
-	return saveLibrary(w, kindSequenceHMM, lib)
-}
-
-// Open loads an existing structure fragment library from the reader provided.
-func openSequenceHMM(r io.Reader) (*SequenceHMM, error) {
-	var lib *SequenceHMM
-	dec := json.NewDecoder(r)
-	if err := dec.Decode(&lib); err != nil {
-		return nil, err
-	}
-	return lib, nil
+func (lib *sequenceHMM) Tag() string {
+	return libTagSequenceHMM
 }
 
 // Size returns the number of fragments in the library.
-func (lib *SequenceHMM) Size() int {
+func (lib *sequenceHMM) Size() int {
 	return len(lib.Fragments)
 }
 
 // FragmentSize returns the size of every fragment in the library.
-func (lib *SequenceHMM) FragmentSize() int {
+func (lib *sequenceHMM) FragmentSize() int {
 	return lib.FragSize
-}
-
-// Fragment returns the ith fragment in this library (starting from 0).
-func (lib *SequenceHMM) Fragment(i int) SequenceFragment {
-	return lib.Fragments[i]
 }
 
 // String returns a string with the name of the library, the number of
 // fragments in the library and the size of each fragment.
-func (lib *SequenceHMM) String() string {
+func (lib *sequenceHMM) String() string {
 	return fmt.Sprintf("%s (%d, %d)",
 		lib.Ident, len(lib.Fragments), lib.FragSize)
 }
 
-func (lib *SequenceHMM) Name() string {
+func (lib *sequenceHMM) Name() string {
 	return lib.Ident
 }
 
@@ -95,7 +102,7 @@ func (lib *SequenceHMM) Name() string {
 //
 // If no "good" fragments can be found, then `-1` is returned. This
 // behavior will almost certainly change in the future.
-func (lib *SequenceHMM) Best(s seq.Sequence) int {
+func (lib *sequenceHMM) BestSequenceFragment(s seq.Sequence) int {
 	if s.Len() != lib.FragmentSize() {
 		panic(fmt.Sprintf("Sequence length %d != fragment size %d",
 			s.Len(), lib.FragmentSize()))
@@ -112,17 +119,11 @@ func (lib *SequenceHMM) Best(s seq.Sequence) int {
 	return bestFragNum
 }
 
-// Fragment corresponds to a single sequence fragment in a fragment library.
-// It holds the fragment number identifier and embeds an HMM.
-type SequenceHMMFrag struct {
-	FragNumber int
-	*seq.HMM
-}
-
 // AlignmentProb computes the probability of the sequence `s` aligning
 // with the HMM in `frag`. The sequence must have length equivalent
 // to the fragment size.
-func (frag SequenceHMMFrag) AlignmentProb(s seq.Sequence) seq.Prob {
+func (lib *sequenceHMM) AlignmentProb(fragi int, s seq.Sequence) seq.Prob {
+	frag := lib.Fragments[fragi]
 	if s.Len() != len(frag.Nodes) {
 		panic(fmt.Sprintf("Sequence length %d != fragment size %d",
 			s.Len(), len(frag.Nodes)))
@@ -130,10 +131,6 @@ func (frag SequenceHMMFrag) AlignmentProb(s seq.Sequence) seq.Prob {
 	return frag.ViterbiScore(s)
 }
 
-func (frag SequenceHMMFrag) Number() int {
-	return frag.FragNumber
-}
-
-func (frag SequenceHMMFrag) String() string {
-	return fmt.Sprintf("> %d\n%s", frag.FragNumber, frag.HMM)
+func (lib *sequenceHMM) FragmentString(fragNum int) string {
+	return fmt.Sprintf("> %d\n%s", fragNum, lib.Fragments[fragNum].HMM)
 }

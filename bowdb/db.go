@@ -57,16 +57,14 @@ type DB struct {
 // this BOW database is based on structure fragments. This value is guaranteed
 // to be mutually exclusive with the return value of IsSequence.
 func (db *DB) IsStructure() bool {
-	_, ok := db.Lib.(fragbag.StructureLibrary)
-	return ok
+	return fragbag.IsStructure(db.Lib)
 }
 
 // IsSequence returns true if the underlying fragment library associated with
 // this BOW database is based on sequence fragments. This value is guaranteed
 // to be mutually exclusive with the return value of IsStructure.
 func (db *DB) IsSequence() bool {
-	_, ok := db.Lib.(fragbag.SequenceLibrary)
-	return ok
+	return fragbag.IsSequence(db.Lib)
 }
 
 // OpenDB opens a new BOW database for reading. In particular, all entries
@@ -159,7 +157,7 @@ func CreateDB(lib fragbag.Library, dir string) (*DB, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Could not create '%s': %s", libfp, err)
 	}
-	if err := db.Lib.Save(libf); err != nil {
+	if err := fragbag.Save(libf, db.Lib); err != nil {
 		return nil, fmt.Errorf("Could not copy fragment library: %s", err)
 	}
 

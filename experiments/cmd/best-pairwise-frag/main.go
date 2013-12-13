@@ -41,14 +41,12 @@ func main() {
 		aligned.GetFasta(0), aligned.GetFasta(1),
 		pentry.Chains[0], pentry.Chains[1])
 	for iter.next() {
-		best1, best2 := flib.Best(iter.atoms1), flib.Best(iter.atoms2)
+		best1 := flib.BestStructureFragment(iter.atoms1)
+		best2 := flib.BestStructureFragment(iter.atoms2)
 		if !flagAllFragments && best1 == best2 {
 			continue
 		}
-		bestRmsd := structure.RMSD(
-			flib.Fragment(best1).Atoms(),
-			flib.Fragment(best2).Atoms(),
-		)
+		bestRmsd := structure.RMSD(flib.Atoms(best1), flib.Atoms(best2))
 		pf(
 			fmt.Sprintf("%d", iter.s1()),
 			fmt.Sprintf("%d", iter.e1()),

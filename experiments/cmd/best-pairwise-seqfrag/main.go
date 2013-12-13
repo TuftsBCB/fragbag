@@ -36,15 +36,16 @@ func main() {
 	iter := newContiguous(
 		flib.FragmentSize(), aligned.GetFasta(0), aligned.GetFasta(1))
 	for iter.next() {
-		best1, best2 := flib.Best(iter.res1), flib.Best(iter.res2)
+		best1 := flib.BestSequenceFragment(iter.res1)
+		best2 := flib.BestSequenceFragment(iter.res2)
 		if !flagAllFragments && best1 == best2 {
 			continue
 		}
 		if best1 == -1 || best2 == -1 {
 			continue
 		}
-		p1 := flib.Fragment(best1).AlignmentProb(iter.res1)
-		p2 := flib.Fragment(best2).AlignmentProb(iter.res2)
+		p1 := flib.AlignmentProb(best1, iter.res1)
+		p2 := flib.AlignmentProb(best2, iter.res2)
 		if p1.Distance(p2) > 0.14 {
 			continue
 		}
