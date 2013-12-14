@@ -59,7 +59,7 @@ func (lib *weightedTfIdf) Tag() string {
 
 func makeWeightedTfIdf(subTags ...string) (Library, error) {
 	if len(subTags) == 0 {
-		return nil, fmt.Errorf("The weighted-tfidf fragment library must "+
+		return nil, fmt.Errorf("The weighted-tfidf fragment library must " +
 			"have a sub-tag specified for its sub fragment library.")
 	}
 	empty, err := makeEmptySubLibrary(subTags...)
