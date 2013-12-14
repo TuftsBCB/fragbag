@@ -205,6 +205,13 @@ func (db *DB) Add(bower bow.Bower) {
 	db.writing <- bower
 }
 
+func (db *DB) AddEntry(e Entry) {
+	if db.writing == nil {
+		panic("Cannot add to a BOW database opened in read mode.")
+	}
+	db.entryChan <- e
+}
+
 // filePath concatenates the BOW database path with a file name.
 func (db *DB) filePath(name string) string {
 	return path.Join(db.Path, name)
