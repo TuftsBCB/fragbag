@@ -8,18 +8,12 @@ fi
 dir="$1"
 prefix="$(basename "$dir")"
 
-./collect "$dir" | grep structure-atoms | grep -v weighted | sort -n -k 3 -r \
-  > "$prefix-structure-atoms.tsv"
 ./collect "$dir" | grep structure-atoms | sort -n -k 3 -r \
-  > "$prefix-weighted-tfidf_structure-atoms.tsv"
+  > "$prefix-structure-atoms.tsv"
 
-./collect "$dir" | grep sequence-profile | grep -v weighted | sort -n -k 3 -r \
-  > "$prefix-sequence-profile.tsv"
 ./collect "$dir" | grep sequence-profile | sort -n -k 3 -r \
-  > "$prefix-weighted-tfidf_sequence-profile.tsv"
+  > "$prefix-sequence-profile.tsv"
 
-./collect "$dir" | grep sequence-hmm | grep -v weighted | sort -n -k 3 -r \
-  > "$prefix-sequence-hmm.tsv"
 ./collect "$dir" | grep sequence-hmm | sort -n -k 3 -r \
-  > "$prefix-weighted-tfidf_sequence-hmm.tsv"
+  > "$prefix-sequence-hmm.tsv"
 
