@@ -1,0 +1,21 @@
+#!/bin/sh
+
+function strip_ext {
+  echo "${1%.*}"
+}
+
+if [ $# != 1 ]; then
+  echo "Usage: $(basename "$0") dir" >&2
+  exit 1
+fi
+
+dir="$1"
+for flib in "$FRAGLIB_PATH"/structure/*.json; do
+  base="$(strip_ext "$(basename "$flib")")"
+  for result in "$dir"/*"$base"*; do
+    name="$(basename "$result")"
+    acc=$(grep 'Mean' "$result" | cut -d':' -f2 | tr -d ' ')
+    echo -e "$base\t$name\t$acc"
+  done
+done
+

@@ -58,6 +58,11 @@ flags.use('neighbors', (
                       help='The number of neighbors to search for closest.'),
     None,
 ))
+flags.use('max_clusters', (
+    lambda: flags.add('--max-clusters', type=int, default=500,
+                      help='The max number of clusters to use.'),
+    None,
+))
 flags.init()
 
 bcb.set_exp_dir(flags.config.tmp_dir)
@@ -66,8 +71,6 @@ bcb.make()
 
 flib_name = path.basename(flags.config.frag_lib)
 flib_kind = 'structure' if flags.config.structure else 'sequence'
-outdir = bcb.rjoin('%s-%f' % (flib_kind, flags.config.threshold))
-bcb.makedirs(outdir)
 
 def scop_path(scop_id):
     scop = flags.config.scop
@@ -100,7 +103,8 @@ for row in csv.reader(open(fclusters)):
     cluster = filter(lambda d: bcb.readable(scop_path(d)), row)
     if len(cluster) > 1:
         clusters.append(row)
-# clusters = random.sample(clusters, len(clusters)) 
+if len(clusters) > flags.config.max_clusters:
+    clusters = random.sample(clusters, flags.config.max_clusters)
 
 stats = []
 for i in xrange(flags.config.iters):
@@ -132,6 +136,11 @@ for i in xrange(flags.config.iters):
 # (3)
 def acc(stat):
     return 100 * float(stat['correct']) / float(stat['total'])
+
+outdir = bcb.rjoin('%f' % flags.config.threshold)
+bcb.makedirs(outdir)
+
+flib_name = bcb.flib_name(flags.config.frag_lib)
 outname = '%s_iters%d_neighbors%d' \
           % (flib_name, flags.config.iters, flags.config.neighbors)
 out = path.join(outdir, outname)
