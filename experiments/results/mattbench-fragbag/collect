@@ -13,9 +13,11 @@ dir="$1"
 for flib in "$FRAGLIB_PATH"/structure/*.json; do
   base="$(strip_ext "$(basename "$flib")")"
   for result in "$dir"/*"$base"*; do
-    name="$(basename "$result")"
-    acc=$(grep 'Mean' "$result" | cut -d':' -f2 | tr -d ' ')
-    echo -e "$base\t$name\t$acc"
+    if [ -f "$result" ]; then
+      name="$(basename "$result")"
+      acc=$(grep 'Mean' "$result" | cut -d':' -f2 | tr -d ' ')
+      echo -e "$base\t$name\t$acc"
+    fi
   done
 done
 

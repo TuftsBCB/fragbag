@@ -17,3 +17,5 @@ prefix="$(basename "$dir")"
 ./collect "$dir" | grep sequence-hmm | sort -n -k 3 -r \
   > "$prefix-sequence-hmm.tsv"
 
+find ./ -name "$prefix-*.tsv" -size 0c -print0 | xargs -0 rm
+
