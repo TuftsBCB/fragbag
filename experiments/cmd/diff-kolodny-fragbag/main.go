@@ -23,25 +23,25 @@ type oldStyle struct {
 	*pdb.Entry
 }
 
-func (e oldStyle) StructureBOW(lib fragbag.StructureLibrary) bow.BOW {
+func (e oldStyle) StructureBow(lib fragbag.StructureLibrary) bow.Bow {
 	smushed := make([]structure.Coords, 0)
 	for _, chain := range e.Chains {
 		for _, model := range chain.Models {
 			smushed = append(smushed, model.CaAtoms()...)
 		}
 	}
-	return bow.StructureBOW(lib, smushed)
+	return bow.StructureBow(lib, smushed)
 }
 
 type newStyle struct {
 	*pdb.Entry
 }
 
-func (e newStyle) StructureBOW(lib fragbag.StructureLibrary) bow.BOW {
+func (e newStyle) StructureBow(lib fragbag.StructureLibrary) bow.Bow {
 	bag := bow.NewBow(lib.Size())
 	for _, chain := range e.Chains {
 		for _, model := range chain.Models {
-			bag = bag.Add(bow.StructureBOW(lib, model.CaAtoms()))
+			bag = bag.Add(bow.StructureBow(lib, model.CaAtoms()))
 		}
 	}
 	return bag
@@ -103,11 +103,11 @@ func main() {
 		}
 
 		// Now use package fragbag to compute a BOW.
-		var newBow bow.BOW
+		var newBow bow.Bow
 		if flagOldStyle {
-			newBow = oldStyle{entry}.StructureBOW(lib)
+			newBow = oldStyle{entry}.StructureBow(lib)
 		} else {
-			newBow = newStyle{entry}.StructureBOW(lib)
+			newBow = newStyle{entry}.StructureBow(lib)
 		}
 
 		// Create a diff and check if they are the same. If so, we passed.

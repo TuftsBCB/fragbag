@@ -53,7 +53,7 @@ func main() {
 
 	util.Assert(createBowDb(dbPath, fragLibDir, pdbFiles))
 
-	db := util.OpenBOWDB(dbPath)
+	db := util.OpenBowDB(dbPath)
 	_, err := db.ReadAll()
 	util.Assert(err, "Could not read BOW database entries")
 
@@ -76,7 +76,7 @@ func main() {
 	for i, chain := range chains {
 		marg := mattArgs[i]
 
-		bowOrdered := getBowOrdering(db, bowOpts, bow.PDBChainStructure{chain})
+		bowOrdered := getBowOrdering(db, bowOpts, bow.BowerFromChain(chain))
 		mattOrdered := getMattOrdering(mattOpts, marg, mattArgs)
 
 		fmt.Printf("Ordering for %s (chain %c)\n",

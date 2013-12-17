@@ -1,6 +1,7 @@
 package bowdb
 
 import (
+	"archive/tar"
 	"bufio"
 	"bytes"
 	"encoding/binary"
@@ -9,9 +10,9 @@ import (
 	"log"
 	"math"
 	"os"
-	"path"
-	"runtime"
-	"sync"
+	path "path/filepath"
+	"strings"
+	"time"
 
 	"github.com/TuftsBCB/fragbag"
 	"github.com/TuftsBCB/fragbag/bow"
@@ -27,82 +28,72 @@ const (
 // a directory with a copy of the fragment library used to create the database
 // and a binary formatted file of all the frequency vectors computed.
 type DB struct {
-	Lib  fragbag.Library
-	Path string
+	// The fragment library used to make this database.
+	Lib fragbag.Library
+
+	// The name of this database (which always corresponds to the base
+	// name of the database's file path).
 	Name string
 
-	// The file containing the bow library and its buffer.
-	file    *os.File
-	fileBuf *bufio.Reader
+	// The set of entries read from disk when reading a bow DB.
+	// This is populated by ReadAll.
+	entries []bow.Bowed
 
-	// Only set when opened in reading mode.
-	entries []Entry
+	fileBuf *bufio.Reader // A buffer for reading the bow db.
 
-	// for reading only
-	entryBuf []byte
-	bowPool  []float32
-	bowLast  int
-	dataPool []byte
-	dataLast int
+	entryBuf []byte    // Temporary buffer for reading DB entries.
+	bowPool  []float32 // Memory pool for fragment frequencies.
+	bowLast  int       // Last index used in bow pool.
+	dataPool []byte    // Memory pool for entry data.
+	dataLast int       // Last index used in data pool.
 
-	// for writing only
-	writeBuf    *bytes.Buffer
-	writing     chan bow.Bower
-	wg          *sync.WaitGroup
-	writingDone chan struct{}
-	entryChan   chan Entry
+	tw          *tar.Writer    // The writer archive.
+	saveBuf     *bytes.Buffer  // Buffer for bowdb while writing.
+	writeBuf    *bytes.Buffer  // Temporary buffer for binary.
+	writingDone chan struct{}  // Indicate when writing is done.
+	entryChan   chan bow.Bowed // Concurrent writing.
 }
 
-// IsStructure returns true if the underlying fragment library associated with
-// this BOW database is based on structure fragments. This value is guaranteed
-// to be mutually exclusive with the return value of IsSequence.
-func (db *DB) IsStructure() bool {
-	return fragbag.IsStructure(db.Lib)
-}
-
-// IsSequence returns true if the underlying fragment library associated with
-// this BOW database is based on sequence fragments. This value is guaranteed
-// to be mutually exclusive with the return value of IsStructure.
-func (db *DB) IsSequence() bool {
-	return fragbag.IsSequence(db.Lib)
-}
-
-// OpenDB opens a new BOW database for reading. In particular, all entries
+// Open opens a new BOW database for reading. In particular, all entries
 // in the database will be loaded into memory.
-func OpenDB(dir string) (*DB, error) {
+func Open(fpath string) (*DB, error) {
 	var err error
 
-	db := &DB{
-		Path: dir,
-		Name: path.Base(dir),
+	db := &DB{Name: path.Base(fpath)}
+
+	dbf, err := os.Open(fpath)
+	if err != nil {
+		return nil, err
+	}
+	tr := tar.NewReader(dbf)
+
+	if _, err := tr.Next(); err != nil { // the dir header, skip it
+		return nil, err
+	}
+	if _, err := tr.Next(); err != nil { // the flib header
+		return nil, err
 	}
 
-	libf, err := os.Open(db.filePath(fileFragLib))
+	db.Lib, err = fragbag.Open(tr)
 	if err != nil {
 		return nil, err
 	}
 
-	db.Lib, err = fragbag.Open(libf)
-	if err != nil {
+	if _, err := tr.Next(); err != nil { // the bow db header
 		return nil, err
 	}
-
-	db.file, err = os.Open(db.filePath(fileBowDB))
-	if err != nil {
-		return nil, err
-	}
-	db.fileBuf = bufio.NewReaderSize(db.file, 1<<20)
+	db.fileBuf = bufio.NewReaderSize(tr, 1<<20)
 	return db, nil
 }
 
 // ReadAll reads all entries from disk and returns them in a slice.
 // Subsequent calls do not read from disk; the already read entries are
 // returned.
-func (db *DB) ReadAll() ([]Entry, error) {
+func (db *DB) ReadAll() ([]bow.Bowed, error) {
 	if db.entries != nil {
 		return db.entries, nil
 	}
-	db.entries = make([]Entry, 0, 10000)
+	db.entries = make([]bow.Bowed, 0, 10000)
 	for {
 		entry, err := db.read()
 		if err == io.EOF {
@@ -115,61 +106,50 @@ func (db *DB) ReadAll() ([]Entry, error) {
 	return db.entries, nil
 }
 
-// CreateDB creates a new BOW database on disk at 'dir'. If the directory
+// Create creates a new BOW database on disk at 'dir'. If the directory
 // already exists or cannot be created, an error is returned.
 //
-// CreateDB starts GOMAXPROCS workers, where each worker computes a single
-// BOW at a time. You should call `Add` to add any value implementing the
-// Bower interface, and `Close` when finished adding.
+// When you're finished adding entries, you must call Close.
 //
-// One a BOW database is created, it cannot be modified.
-func CreateDB(lib fragbag.Library, dir string) (*DB, error) {
-	var err error
-
-	_, err = os.Stat(dir)
-	if err == nil || !os.IsNotExist(err) {
-		return nil, fmt.Errorf("BOW database '%s' already exists.", dir)
+// Once a BOW database is created, it cannot be modified. (This restriction
+// may be lifted in the future.)
+func Create(lib fragbag.Library, fpath string) (*DB, error) {
+	if _, err := os.Stat(fpath); err == nil || !os.IsNotExist(err) {
+		return nil, fmt.Errorf("BOW database '%s' already exists.", fpath)
 	}
-	if err = os.MkdirAll(dir, 0777); err != nil {
-		return nil, fmt.Errorf("Could not create '%s': %s", dir, err)
+	outf, err := os.Create(fpath)
+	if err != nil {
+		return nil, err
 	}
 
 	db := &DB{
 		Lib:  lib,
-		Path: dir,
-		Name: path.Base(dir),
+		Name: path.Base(fpath),
 
+		tw:          tar.NewWriter(outf),
+		saveBuf:     new(bytes.Buffer),
 		writeBuf:    new(bytes.Buffer),
-		writing:     make(chan bow.Bower),
-		entryChan:   make(chan Entry),
+		entryChan:   make(chan bow.Bowed),
 		writingDone: make(chan struct{}),
-		wg:          new(sync.WaitGroup),
 	}
 
-	fp := db.filePath(fileBowDB)
-	db.file, err = os.Create(fp)
-	if err != nil {
-		return nil, fmt.Errorf("Could not create '%s': %s", fp, err)
+	// Put all bow DB files in a directory within the archive.
+	hdrDir := db.newHdrDir(db.dirName())
+	if err := db.tw.WriteHeader(hdrDir); err != nil {
+		return nil, err
 	}
 
-	libfp := db.filePath(fileFragLib)
-	libf, err := os.Create(libfp)
-	if err != nil {
-		return nil, fmt.Errorf("Could not create '%s': %s", libfp, err)
-	}
-	if err := fragbag.Save(libf, db.Lib); err != nil {
+	// Create an entry for the fragment library. Copy the bytes.
+	flibBytes := new(bytes.Buffer)
+	if err := fragbag.Save(flibBytes, db.Lib); err != nil {
 		return nil, fmt.Errorf("Could not copy fragment library: %s", err)
 	}
-
-	// Spin up goroutines to compute BOWs.
-	for i := 0; i < max(1, runtime.GOMAXPROCS(0)); i++ {
-		go func() {
-			db.wg.Add(1)
-			for bower := range db.writing {
-				db.entryChan <- db.NewEntry(bower)
-			}
-			db.wg.Done()
-		}()
+	hdr := db.newHdr(fileFragLib, flibBytes.Len())
+	if err := db.tw.WriteHeader(hdr); err != nil {
+		return nil, err
+	}
+	if _, err := db.tw.Write(flibBytes.Bytes()); err != nil {
+		return nil, err
 	}
 
 	// Now spin up a goroutine that is responsible for writing entries.
@@ -181,92 +161,73 @@ func CreateDB(lib fragbag.Library, dir string) (*DB, error) {
 		}
 		db.writingDone <- struct{}{}
 	}()
-
 	return db, nil
 }
 
-// Add will add any value implementing the Bower interface to the BOW
-// database. It is safe to call `Add` from multiple goroutines.
-// If the fragment library in the database is structure based, then bower
-// must also implement StructureBower. Conversely, if the fragment library is
-// sequence based, then bower must also implement SequenceBower.
-// A violation of the aforementioned invariant will result in a type assertion
-// panic.
-//
-// Note that `CreateDB` will already compute BOWs concurrently, which will
-// take advantage of parallelism when multiple CPUs are present.
+// Add will add a row to the database. It is safe to call `Add` from multiple
+// goroutines. The bowed value given must have been computed with the fragment
+// library given to Create.
 //
 // Add will panic if it is called on a BOW database that been opened for
 // reading.
-func (db *DB) Add(bower bow.Bower) {
-	if db.writing == nil {
-		panic("Cannot add to a BOW database opened in read mode.")
-	}
-	db.writing <- bower
-}
-
-func (db *DB) AddEntry(e Entry) {
-	if db.writing == nil {
+func (db *DB) Add(e bow.Bowed) {
+	if db.entryChan == nil {
 		panic("Cannot add to a BOW database opened in read mode.")
 	}
 	db.entryChan <- e
 }
 
-// filePath concatenates the BOW database path with a file name.
-func (db *DB) filePath(name string) string {
-	return path.Join(db.Path, name)
-}
-
 // Close should be called when done reading/writing a BOW db.
 func (db *DB) Close() error {
-	if db.writing != nil {
-		close(db.writing)
-		db.wg.Wait()
+	if db.tw != nil {
 		close(db.entryChan)
 		<-db.writingDone
+
+		hdr := db.newHdr(fileBowDB, db.saveBuf.Len())
+		if err := db.tw.WriteHeader(hdr); err != nil {
+			return fmt.Errorf("Could not write TAR header for bow db: %s", err)
+		}
+		if _, err := db.tw.Write(db.saveBuf.Bytes()); err != nil {
+			return fmt.Errorf("Could not write contents of bow db: %s", err)
+		}
+
+		if err := db.tw.Close(); err != nil {
+			return fmt.Errorf("Could not close bowdb archive: %s", err)
+		}
 	}
-	return db.file.Close()
+	return nil
+	// return db.file.Close()
 }
 
+// String returns the name of the database.
 func (db *DB) String() string {
 	return db.Name
 }
 
-// Entry corresponds to a single row in the BOW database. It is uniquely
-// identified by Id, which is typically constructed as the concatenation
-// of the 4 letter PDB Id Code with the single letter chain identifier.
-type Entry struct {
-	// Id is a uniquely identifying string for this row in the database.
-	// In the case of a PDB chain structure, it is the 4 letter PDB id
-	// code concatenated with the single letter chain identifier.
-	Id string
-
-	// Arbitrary data associated with this entry.
-	// For example, the sequence header in a FASTA file.
-	Data []byte
-
-	// The fragment frequency vector.
-	BOW bow.BOW
+func (db *DB) newHdr(name string, size int) *tar.Header {
+	now := time.Now()
+	return &tar.Header{
+		Name:       path.Join(db.dirName(), name),
+		Mode:       0644,
+		Uid:        os.Getuid(),
+		Gid:        os.Getgid(),
+		Size:       int64(size),
+		ModTime:    now,
+		AccessTime: now,
+		ChangeTime: now,
+	}
 }
 
-func (db *DB) NewEntry(bower bow.Bower) Entry {
-	switch lib := db.Lib.(type) {
-	case fragbag.StructureLibrary:
-		b := bower.(bow.StructureBower)
-		return Entry{
-			b.Id(),
-			bower.Data(),
-			b.StructureBOW(lib),
-		}
-	case fragbag.SequenceLibrary:
-		b := bower.(bow.SequenceBower)
-		return Entry{
-			b.Id(),
-			bower.Data(),
-			b.SequenceBOW(lib),
-		}
-	}
-	panic(fmt.Sprintf("Unsupported fragment library: %T", db.Lib))
+func (db *DB) newHdrDir(name string) *tar.Header {
+	h := db.newHdr(name, 0)
+	h.Name = name
+	h.Typeflag = tar.TypeDir
+	h.Mode = 0755
+	return h
+}
+
+func (db *DB) dirName() string {
+	return strings.TrimSuffix(db.Name, path.Ext(db.Name))
 }
 
 func max(a, b int) int {
@@ -282,8 +243,7 @@ func max(a, b int) int {
 // reading), but we need to be as fast here as possible. (It looks like
 // there is a fair bit of allocation going on in the binary package.)
 // Benchmarks are gone in the wind...
-func (db *DB) read() (*Entry, error) {
-	libSize := db.Lib.Size()
+func (db *DB) read() (*bow.Bowed, error) {
 
 	// Read in the id string.
 	if err := db.readItem(); err != nil {
@@ -302,17 +262,16 @@ func (db *DB) read() (*Entry, error) {
 	if err := db.readItem(); err != nil {
 		return nil, err
 	}
-	if len(db.entryBuf) != libSize*4 {
-		return nil, fmt.Errorf("Expected %d bytes for BOW vector but got %d",
-			libSize*4, len(db.entryBuf))
-	}
 
 	freqs := db.newBow()
-	for i := 0; i < libSize; i++ {
-		freqs[i] = math.Float32frombits(
-			binary.BigEndian.Uint32(db.entryBuf[i*4:]))
+	// Advance 6 bytes at a time. 2 bytes for the fragment index and
+	// 4 bytes for the fragment frequency.
+	for i := 0; i < len(db.entryBuf); i += 6 {
+		fragi := binary.BigEndian.Uint16(db.entryBuf[i : i+2])
+		freqs[fragi] = math.Float32frombits(
+			binary.BigEndian.Uint32(db.entryBuf[i+2 : i+6]))
 	}
-	return &Entry{id, data, bow.BOW{freqs}}, nil
+	return &bow.Bowed{Id: id, Data: data, Bow: bow.Bow{freqs}}, nil
 }
 
 func (db *DB) newBow() []float32 {
@@ -374,7 +333,7 @@ func (db *DB) readNBytes(n int) error {
 	return nil
 }
 
-func (db *DB) write(entry Entry) error {
+func (db *DB) write(entry bow.Bowed) error {
 	libSize := db.Lib.Size()
 
 	db.writeBuf.WriteString(entry.Id)
@@ -387,10 +346,16 @@ func (db *DB) write(entry Entry) error {
 		return err
 	}
 
+	// Store BOWs as sparse frequency vectors.
 	for i := 0; i < libSize; i++ {
-		f := entry.BOW.Freqs[i]
-		if err := binary.Write(db.writeBuf, binary.BigEndian, f); err != nil {
-			return fmt.Errorf("Could not write BOW for '%s': %s", entry.Id, err)
+		f := entry.Bow.Freqs[i]
+		if f > 0 {
+			if err := binw(db.writeBuf, uint16(i)); err != nil {
+				return fmt.Errorf("Error writing bow '%s': %s", entry.Id, err)
+			}
+			if err := binw(db.writeBuf, f); err != nil {
+				return fmt.Errorf("Error writing BOW '%s': %s", entry.Id, err)
+			}
 		}
 	}
 	if err := db.writeItem(); err != nil {
@@ -401,12 +366,16 @@ func (db *DB) write(entry Entry) error {
 
 func (db *DB) writeItem() error {
 	itemLen := uint32(db.writeBuf.Len())
-	if err := binary.Write(db.file, binary.BigEndian, itemLen); err != nil {
+	if err := binw(db.saveBuf, itemLen); err != nil {
 		return fmt.Errorf("Could not write item size: %s", err)
 	}
-	if _, err := db.file.Write(db.writeBuf.Bytes()); err != nil {
+	if _, err := db.saveBuf.Write(db.writeBuf.Bytes()); err != nil {
 		return fmt.Errorf("Could not write item: %s", err)
 	}
 	db.writeBuf.Reset()
 	return nil
+}
+
+func binw(w io.Writer, v interface{}) error {
+	return binary.Write(w, binary.BigEndian, v)
 }

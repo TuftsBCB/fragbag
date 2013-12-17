@@ -15,7 +15,7 @@ func init() {
 }
 
 func main() {
-	db := util.OpenBOWDB(util.Arg(0))
+	db := util.OpenBowDB(util.Arg(0))
 	out := util.CreateFile(util.Arg(1))
 
 	printf := func(format string, v ...interface{}) {
@@ -31,11 +31,11 @@ func main() {
 	util.Assert(err, "Could not read BOW database entries")
 
 	for _, entry := range entries {
-		results := db.SearchEntry(bowOpts, entry)
+		results := db.Search(bowOpts, entry)
 
 		for _, result := range results {
 			printf("%s\t%s\t%0.4f\t%0.4f\n",
-				entry.Id, result.Entry.Id, result.Cosine, result.Euclid)
+				entry.Id, result.Bowed.Id, result.Cosine, result.Euclid)
 		}
 		printf("\n")
 	}

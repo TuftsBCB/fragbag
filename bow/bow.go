@@ -6,132 +6,15 @@ import (
 	"strings"
 
 	"github.com/TuftsBCB/fragbag"
-	"github.com/TuftsBCB/io/pdb"
-	"github.com/TuftsBCB/seq"
-	"github.com/TuftsBCB/structure"
 )
 
-type Bower interface {
-	// A globally unique identifier for this value.
-	// e.g., a PDB identifier "1ctf" or a PDB identifier with a chain
-	// identifier "1ctfA" or a sequence accession number.
-	Id() string
-
-	// Arbitrary data that will be stored with it in a BOW
-	// database. No restrictions.
-	Data() []byte
-}
-
-type StructureBower interface {
-	Bower
-
-	// Computes a bag-of-words given a structure fragment library.
-	// For example, to compute the bag-of-words of a chain in a PDB entry:
-	//
-	//     lib := someStructureFragmentLibrary()
-	//     chain := somePdbChain()
-	//     fmt.Println(PDBChainStructure{chain}.StructureBOW(lib))
-	//
-	// This is made easier by using pre-defined types in this package that
-	// implement this interface. (Similar to how the standard library sort
-	// package is designed.)
-	StructureBOW(lib fragbag.StructureLibrary) BOW
-}
-
-type PDBChainStructure struct {
-	*pdb.Chain
-}
-
-func (chain PDBChainStructure) Id() string {
-	switch {
-	case len(chain.Entry.Scop) > 0:
-		return chain.Entry.Scop
-	case len(chain.Entry.Cath) > 0:
-		return chain.Entry.Cath
-	}
-	return fmt.Sprintf("%s%c", strings.ToLower(chain.Entry.IdCode), chain.Ident)
-}
-
-func (chain PDBChainStructure) Data() []byte {
-	return nil
-}
-
-func (chain PDBChainStructure) StructureBOW(lib fragbag.StructureLibrary) BOW {
-	return StructureBOW(lib, chain.CaAtoms())
-}
-
-// StructureBOW is a helper function to compute a bag-of-words given a
-// structure fragment library and a list of alpha-carbon atoms.
-//
-// If the lib given is a weighted library, then the BOW returned will also
-// be weighted.
-func StructureBOW(lib fragbag.StructureLibrary, atoms []structure.Coords) BOW {
-	var best, uplimit int
-
-	b := NewBow(lib.Size())
-	libSize := lib.FragmentSize()
-	uplimit = len(atoms) - libSize
-	for i := 0; i <= uplimit; i++ {
-		best = lib.BestStructureFragment(atoms[i : i+libSize])
-		b.Freqs[best] += 1
-	}
-	if wlib, ok := lib.(fragbag.WeightedLibrary); ok {
-		b = b.Weighted(wlib)
-	}
-	return b
-}
-
-type SequenceBower interface {
-	Bower
-
-	// Computes a bag-of-words given a sequence fragment library.
-	SequenceBOW(lib fragbag.SequenceLibrary) BOW
-}
-
-type Sequence struct {
-	seq.Sequence
-}
-
-func (s Sequence) Id() string {
-	return strings.Fields(s.Name)[0]
-}
-
-func (s Sequence) Data() []byte {
-	return s.Bytes()
-}
-
-func (s Sequence) SequenceBOW(lib fragbag.SequenceLibrary) BOW {
-	return SequenceBOW(lib, s.Sequence)
-}
-
-// SequenceBOW is a helper function to compute a bag-of-words given a
-// sequence fragment library and a query sequence.
-//
-// If the lib given is a weighted library, then the BOW returned will also
-// be weighted.
-func SequenceBOW(lib fragbag.SequenceLibrary, s seq.Sequence) BOW {
-	var best, uplimit int
-
-	b := NewBow(lib.Size())
-	libSize := lib.FragmentSize()
-	uplimit = s.Len() - libSize
-	for i := 0; i <= uplimit; i++ {
-		best = lib.BestSequenceFragment(s.Slice(i, i+libSize))
-		if best < 0 {
-			continue
-		}
-		b.Freqs[best] += 1
-	}
-	if wlib, ok := lib.(fragbag.WeightedLibrary); ok {
-		b = b.Weighted(wlib)
-	}
-	return b
-}
-
-// BOW represents a bag-of-words vector of size N for a particular fragment
+// Bow represents a bag-of-words vector of size N for a particular fragment
 // library, where N corresponds to the number of fragments in the fragment
 // library.
-type BOW struct {
+//
+// Note that a Bow may be weighted. It is up to the fragment library to
+// apply weights to a Bow.
+type Bow struct {
 	// Freqs is a map from fragment number to the number of occurrences of
 	// that fragment in this "bag of words." This map always has size
 	// equivalent to the size of the library.
@@ -139,48 +22,48 @@ type BOW struct {
 }
 
 // NewBow returns a bag-of-words with all fragment frequencies set to 0.
-func NewBow(size int) BOW {
-	bow := BOW{
+func NewBow(size int) Bow {
+	b := Bow{
 		Freqs: make([]float32, size),
 	}
 	for i := 0; i < size; i++ {
-		bow.Freqs[i] = 0
+		b.Freqs[i] = 0
 	}
-	return bow
+	return b
 }
 
-// Weighted transforms any BOW into a weighted BOW with the scheme in the given
-// weighted fragment library. The BOW size must be equivalent to the size of
+// Weighted transforms any Bow into a weighted Bow with the scheme in the given
+// weighted fragment library. The Bow size must be equivalent to the size of
 // the library given.
-func (bow BOW) Weighted(lib fragbag.WeightedLibrary) BOW {
-	if bow.Len() != lib.Size() {
-		panic(fmt.Sprintf("Cannot weight BOW with a library of a different "+
-			"size. BOW has size %d while library (%s) has size %d.",
-			bow.Len(), lib.Name(), lib.Size()))
+func (b Bow) Weighted(lib fragbag.WeightedLibrary) Bow {
+	if b.Len() != lib.Size() {
+		panic(fmt.Sprintf("Cannot weight Bow with a library of a different "+
+			"size. Bow has size %d while library (%s) has size %d.",
+			b.Len(), lib.Name(), lib.Size()))
 	}
 
-	weighted := NewBow(bow.Len())
+	weighted := NewBow(b.Len())
 	for i := 0; i < weighted.Len(); i++ {
-		weighted.Freqs[i] = lib.AddWeights(i, bow.Freqs[i])
+		weighted.Freqs[i] = lib.AddWeights(i, b.Freqs[i])
 	}
 	return weighted
 }
 
 // Len returns the size of the vector. This is always equivalent to the
 // corresponding library's fragment size.
-func (bow BOW) Len() int {
-	return len(bow.Freqs)
+func (b Bow) Len() int {
+	return len(b.Freqs)
 }
 
-// Equal tests whether two BOWs are equal.
+// Equal tests whether two Bows are equal.
 //
-// Two BOWs are equivalent when the frequencies of every fragment are equal.
-func (bow1 BOW) Equal(bow2 BOW) bool {
-	if bow1.Len() != bow2.Len() {
+// Two Bows are equivalent when the frequencies of every fragment are equal.
+func (b Bow) Equal(b2 Bow) bool {
+	if b.Len() != b2.Len() {
 		return false
 	}
-	for i, freq1 := range bow1.Freqs {
-		if freq1 != bow2.Freqs[i] {
+	for i, freq1 := range b.Freqs {
+		if freq1 != b2.Freqs[i] {
 			return false
 		}
 	}
@@ -188,38 +71,38 @@ func (bow1 BOW) Equal(bow2 BOW) bool {
 }
 
 // Add performs an add operation on each fragment frequency and returns
-// a new BOW. Add will panic if the operands have different lengths.
-func (bow1 BOW) Add(bow2 BOW) BOW {
-	if bow1.Len() != bow2.Len() {
-		panic("Cannot add two BOWs with differing lengths")
+// a new Bow. Add will panic if the operands have different lengths.
+func (b Bow) Add(b2 Bow) Bow {
+	if b.Len() != b2.Len() {
+		panic("Cannot add two Bows with differing lengths")
 	}
 
-	sum := NewBow(bow1.Len())
+	sum := NewBow(b.Len())
 	for i := 0; i < sum.Len(); i++ {
-		sum.Freqs[i] = bow1.Freqs[i] + bow2.Freqs[i]
+		sum.Freqs[i] = b.Freqs[i] + b2.Freqs[i]
 	}
 	return sum
 }
 
-// Euclid returns the euclidean distance between bow1 and bow2.
-func (bow1 BOW) Euclid(bow2 BOW) float64 {
-	f1, f2 := bow1.Freqs, bow2.Freqs
+// Euclid returns the euclidean distance between b and b2.
+func (b Bow) Euclid(b2 Bow) float64 {
+	f1, f2 := b.Freqs, b2.Freqs
 	squareSum := float32(0)
-	libsize := bow1.Len()
+	libsize := b.Len()
 	for i := 0; i < libsize; i++ {
 		squareSum += (f2[i] - f1[i]) * (f2[i] - f1[i])
 	}
 	return math.Sqrt(float64(squareSum))
 }
 
-// Cosine returns the cosine distance between bow1 and bow2.
-func (bow1 BOW) Cosine(bow2 BOW) float64 {
+// Cosine returns the cosine distance between b and b2.
+func (b Bow) Cosine(b2 Bow) float64 {
 	// This function is a hot-spot, so we manually inline the Dot
 	// and Magnitude computations.
 
 	var dot, mag1, mag2 float32
-	libs := len(bow1.Freqs)
-	freqs1, freqs2 := bow1.Freqs, bow2.Freqs
+	libs := len(b.Freqs)
+	freqs1, freqs2 := b.Freqs, b2.Freqs
 
 	var f1, f2 float32
 	for i := 0; i < libs; i++ {
@@ -235,38 +118,38 @@ func (bow1 BOW) Cosine(bow2 BOW) float64 {
 	return r
 }
 
-// Dot returns the dot product of bow1 and bow2.
-func (bow1 BOW) Dot(bow2 BOW) float64 {
+// Dot returns the dot product of b and b2.
+func (b Bow) Dot(b2 Bow) float64 {
 	dot := float32(0)
-	libsize := bow1.Len()
-	f1, f2 := bow1.Freqs, bow2.Freqs
+	libsize := b.Len()
+	f1, f2 := b.Freqs, b2.Freqs
 	for i := 0; i < libsize; i++ {
 		dot += f1[i] * f2[i]
 	}
 	return float64(dot)
 }
 
-// Magnitude returns the vector length of the bow.
-func (bow BOW) Magnitude() float64 {
+// Magnitude returns the vector length of b.
+func (b Bow) Magnitude() float64 {
 	mag := float32(0)
-	libsize := bow.Len()
-	fs := bow.Freqs
+	libsize := b.Len()
+	fs := b.Freqs
 	for i := 0; i < libsize; i++ {
 		mag += fs[i] * fs[i]
 	}
 	return math.Sqrt(float64(mag))
 }
 
-// String returns a string representation of the BOW vector. Only fragments
+// String returns a string representation of the Bow vector. Only fragments
 // with non-zero frequency are emitted.
 //
 // The output looks like '{fragNum: frequency, fragNum: frequency, ...}'.
 // i.e., '{1: 4, 3: 1}' where all fragment numbers except '1' and '3' have
 // a frequency of zero.
-func (bow BOW) String() string {
+func (b Bow) String() string {
 	pieces := make([]string, 0, 10)
-	for i := 0; i < bow.Len(); i++ {
-		freq := bow.Freqs[i]
+	for i := 0; i < b.Len(); i++ {
+		freq := b.Freqs[i]
 		if freq > 0 {
 			pieces = append(pieces, fmt.Sprintf("%f: %f", i, freq))
 		}

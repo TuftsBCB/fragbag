@@ -1,5 +1,9 @@
 package bowdb
 
+import (
+	"github.com/TuftsBCB/fragbag/bow"
+)
+
 type bst struct {
 	root     *node
 	min, max *node
@@ -7,12 +11,12 @@ type bst struct {
 }
 
 type node struct {
-	Entry
+	bow.Bowed
 	distance    float64
 	left, right *node
 }
 
-func (tree *bst) insert(entry Entry, distance float64) {
+func (tree *bst) insert(entry bow.Bowed, distance float64) {
 	newn := &node{entry, distance, nil, nil}
 	if tree.root == nil {
 		tree.root = newn

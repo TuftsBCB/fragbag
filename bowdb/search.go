@@ -42,43 +42,39 @@ var SearchClose = SearchOptions{
 }
 
 type SearchResult struct {
-	Entry
+	bow.Bowed
 	Cosine, Euclid float64
 }
 
-func newSearchResult(query, entry Entry) SearchResult {
+func newSearchResult(query, entry bow.Bowed) SearchResult {
 	return SearchResult{
-		Entry:  entry,
-		Cosine: query.BOW.Cosine(entry.BOW),
-		Euclid: query.BOW.Euclid(entry.BOW),
+		Bowed:  entry,
+		Cosine: query.Bow.Cosine(entry.Bow),
+		Euclid: query.Bow.Euclid(entry.Bow),
 	}
 }
 
-// Search runs SearchEntry on the return value of NewEntry(query).
-func (db *DB) Search(opts SearchOptions, query bow.Bower) []SearchResult {
-	return db.SearchEntry(opts, db.NewEntry(query))
-}
-
-// SearchEntry currently performs an exhaustive search against the query
-// entry. The best N results are returned with respect to the options given.
+// Search performs an exhaustive search against the query entry. The best N
+// results are returned with respect to the options given. The query given
+// must have been computed with this database's fragment library.
 //
-// At this point in time, the ReadAll method must be called before invoking
-// a search, otherwise this function will panic. This requirement may be lifted
-// if indexed searching is added (to avoid exhaustive searching).
-func (db *DB) SearchEntry(opts SearchOptions, query Entry) []SearchResult {
+// Note that if the ReadAll method hasn't been called before, Search will
+// call it for you. (This means that the first search could take longer than
+// one would otherwise expect.)
+func (db *DB) Search(opts SearchOptions, query bow.Bowed) []SearchResult {
 	tree := new(bst)
 
 	if db.entries == nil {
-		panic("The ReadAll method must be called before searching.")
+		db.ReadAll()
 	}
 	for _, entry := range db.entries {
 		// Compute the distance between the query and the target.
 		var dist float64
 		switch opts.SortBy {
 		case Cosine:
-			dist = query.BOW.Cosine(entry.BOW)
+			dist = query.Bow.Cosine(entry.Bow)
 		case Euclid:
-			dist = query.BOW.Euclid(entry.BOW)
+			dist = query.Bow.Euclid(entry.Bow)
 		default:
 			panic(fmt.Sprintf("Unrecognized SortBy value: %d", opts.SortBy))
 		}
@@ -123,12 +119,12 @@ func (db *DB) SearchEntry(opts SearchOptions, query Entry) []SearchResult {
 	i := 0
 	if opts.Order == OrderAsc {
 		tree.root.inorder(func(n *node) {
-			results[i] = newSearchResult(query, n.Entry)
+			results[i] = newSearchResult(query, n.Bowed)
 			i += 1
 		})
 	} else {
 		tree.root.inorderReverse(func(n *node) {
-			results[i] = newSearchResult(query, n.Entry)
+			results[i] = newSearchResult(query, n.Bowed)
 			i += 1
 		})
 	}

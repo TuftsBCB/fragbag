@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/TuftsBCB/apps/matt"
+	"github.com/TuftsBCB/fragbag"
 	"github.com/TuftsBCB/fragbag/bow"
 	"github.com/TuftsBCB/fragbag/bowdb"
 	"github.com/TuftsBCB/io/pdb"
@@ -57,12 +58,13 @@ func (c chain) String() string {
 func getBowOrdering(db *bowdb.DB,
 	opts bowdb.SearchOptions, bower bow.StructureBower) ordering {
 
-	results := db.Search(opts, bower)
+	lib := db.Lib.(fragbag.StructureLibrary)
+	results := db.Search(opts, bower.StructureBow(lib))
 
 	ordered := make(ordering, len(results))
 	for i, result := range results {
 		ordered[i] = chain{
-			idCode: result.Entry.Id,
+			idCode: result.Bowed.Id,
 			dist:   result.Cosine,
 		}
 	}

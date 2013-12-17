@@ -2,20 +2,22 @@ package bow
 
 import (
 	"fmt"
+	"log"
+	"os"
 	"testing"
 
-	"github.com/TuftsBCB/frags/fragbag"
+	"github.com/TuftsBCB/fragbag"
 )
 
 var (
 	libpath = "../data/fraglibs/centers400_11.brk"
 
-	library  *fragbag.Library
+	library  fragbag.Library
 	oldstyle []string
-	newstyle []BOW
+	newstyle []Bow
 )
 
-func newBowMap(size int, mfreqs map[int]uint32) BOW {
+func newBowMap(size int, mfreqs map[int]float32) Bow {
 	b := NewBow(size)
 	for fragNum, freq := range mfreqs {
 		b.Freqs[fragNum] = freq
@@ -25,10 +27,21 @@ func newBowMap(size int, mfreqs map[int]uint32) BOW {
 
 func init() {
 	var err error
-	library, err = fragbag.NewLibrary(libpath)
+	var flib *os.File
+
+	flib_path := os.Getenv("FRAGLIB_PATH")
+	if len(flib_path) == 0 {
+		log.Fatal("Environment variable FRAGLIB_PATH must be set.")
+	}
+
+	flib, err = os.Open(fmt.Sprintf("%s/structure/400-11.json", flib_path))
 	if err != nil {
-		panic(fmt.Sprintf("Could not initialize fragment library at path "+
-			"'%s' because: %s.", libpath, err))
+		log.Fatal(err)
+	}
+
+	library, err = fragbag.Open(flib)
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	oldstyle = []string{
@@ -36,12 +49,12 @@ func init() {
 		"126#258#386#",
 		"abcdefYZ#52#53#54#abcdef",
 	}
-	newstyle = []BOW{
-		newBowMap(library.Size(), map[int]uint32{0: 5}),
-		newBowMap(library.Size(), map[int]uint32{
+	newstyle = []Bow{
+		newBowMap(library.Size(), map[int]float32{0: 5}),
+		newBowMap(library.Size(), map[int]float32{
 			126: 1, 258: 1, 386: 1,
 		}),
-		newBowMap(library.Size(), map[int]uint32{
+		newBowMap(library.Size(), map[int]float32{
 			0: 2, 1: 2, 2: 2, 3: 2, 4: 2, 5: 2,
 			50: 1, 51: 1, 52: 1, 53: 1, 54: 1,
 		}),

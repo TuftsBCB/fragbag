@@ -44,12 +44,12 @@ import (
 // corresponding to the input PDB file). This order is not captured or
 // preserved by BOW values in this package. Thus, the only way to truly test
 // for equality is to convert Fragbag's output to a BOW using NewOldStyleBow,
-// and using the (BOW).Equal method.
-func (bow BOW) StringOldStyle() string {
+// and using the (Bow).Equal method.
+func (b Bow) StringOldStyle() string {
 	buf := new(bytes.Buffer)
 	a, z := int('a'-'a'), int('z'-'a')
 	A, Z := int('A'-'A'+26), int('Z'-'A'+26)
-	for i, freq := range bow.Freqs {
+	for i, freq := range b.Freqs {
 		switch {
 		case i >= a && i <= z:
 			fragLetter := string('a' + byte(i))
@@ -77,10 +77,10 @@ func (bow BOW) StringOldStyle() string {
 // Moreover, the numbers are delimited by a '#' character, while the letters
 // aren't delimited by anything.
 //
-// Please see the documentation for (BOW).StringOldStyle for a production rule.
+// Please see the documentation for (Bow).StringOldStyle for a production rule.
 //
 // If the string is malformed, NewOldStyleBow will return an error.
-func NewOldStyleBow(size int, oldschool string) (BOW, error) {
+func NewOldStyleBow(size int, oldschool string) (Bow, error) {
 	// This works by splitting the string on '#' and performing case analysis
 	// on each character processed for each sub-string created by splitting
 	// on '#':
@@ -138,33 +138,33 @@ func NewOldStyleBow(size int, oldschool string) (BOW, error) {
 				buf = append(buf, char)
 			case char >= 'a' && char <= 'z':
 				if err := mustBeEmpty(buf, piece); err != nil {
-					return BOW{}, err
+					return Bow{}, err
 				}
 				if err := addToBow(int(char - 'a')); err != nil {
-					return BOW{}, err
+					return Bow{}, err
 				}
 			case char >= 'A' && char <= 'Z':
 				if err := mustBeEmpty(buf, piece); err != nil {
-					return BOW{}, err
+					return Bow{}, err
 				}
 				if err := addToBow(int(char - 'A' + 26)); err != nil {
-					return BOW{}, err
+					return Bow{}, err
 				}
 			default:
-				return BOW{}, fmt.Errorf("An unrecognized character '%c' "+
+				return Bow{}, fmt.Errorf("An unrecognized character '%c' "+
 					"was found.", char)
 			}
 		}
 		if len(buf) > 0 {
 			if num64, err := strconv.ParseInt(string(buf), 10, 32); err != nil {
-				return BOW{}, fmt.Errorf("Could not parse '%s' as an integer.",
+				return Bow{}, fmt.Errorf("Could not parse '%s' as an integer.",
 					string(buf))
 			} else if num64 <= 51 {
-				return BOW{}, fmt.Errorf("Fragment numbers as integers must "+
+				return Bow{}, fmt.Errorf("Fragment numbers as integers must "+
 					"be at least 52 or greater, but '%d' was found.", num64)
 			} else {
 				if err := addToBow(int(num64)); err != nil {
-					return BOW{}, err
+					return Bow{}, err
 				}
 			}
 		}
