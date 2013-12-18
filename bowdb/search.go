@@ -8,8 +8,8 @@ import (
 )
 
 const (
-	Euclid = iota
-	Cosine
+	SortByEuclid = iota
+	SortByCosine
 )
 
 const (
@@ -17,30 +17,52 @@ const (
 	OrderDesc
 )
 
+// SearchOptions corresponds the parameters of a search.
 type SearchOptions struct {
-	Limit  int
-	Min    float64
-	Max    float64
+	// Limit contrains the number of results returned by the search.
+	Limit int
+
+	// Min specifies a minimum score such that any entry with distance
+	// to the query below the minimum will not be shown.
+	Min float64
+
+	// Max specifies a maximum score such that any entry with distance
+	// to the query above the maximum will not be shown.
+	Max float64
+
+	// SortBy specifies which metric to sort results by.
+	// Currently, only SortByEuclid and SortByCosine are supported.
 	SortBy int
-	Order  int
+
+	// Order specifies whether the results are returned in ascending (OrderAsc)
+	// or descending (OrderDesc) order.
+	Order int
 }
 
+// SearchDefault provides default search settings. Namely, it restricts the
+// result set of a predefined number of hits, and sorts the results by the
+// closest distances using Cosine distance.
 var SearchDefault = SearchOptions{
 	Limit:  25,
 	Min:    0.0,
 	Max:    math.MaxFloat64,
-	SortBy: Cosine,
+	SortBy: SortByCosine,
 	Order:  OrderAsc,
 }
 
+// SearchClose provides search settings that limit results by closeness instead
+// of by number.
 var SearchClose = SearchOptions{
 	Limit:  -1,
 	Min:    0.0,
 	Max:    0.35,
-	SortBy: Cosine,
+	SortBy: SortByCosine,
 	Order:  OrderAsc,
 }
 
+// SearchResult corresponds to a single result returned from a search.
+// It embeds a Bowed result (which includes meta data about the entry) along
+// with values for all distance metrics.
 type SearchResult struct {
 	bow.Bowed
 	Cosine, Euclid float64
@@ -61,6 +83,8 @@ func newSearchResult(query, entry bow.Bowed) SearchResult {
 // Note that if the ReadAll method hasn't been called before, Search will
 // call it for you. (This means that the first search could take longer than
 // one would otherwise expect.)
+//
+// It is safe to call Search on the same database from multiple goroutines.
 func (db *DB) Search(opts SearchOptions, query bow.Bowed) []SearchResult {
 	tree := new(bst)
 
@@ -71,9 +95,9 @@ func (db *DB) Search(opts SearchOptions, query bow.Bowed) []SearchResult {
 		// Compute the distance between the query and the target.
 		var dist float64
 		switch opts.SortBy {
-		case Cosine:
+		case SortByCosine:
 			dist = query.Bow.Cosine(entry.Bow)
-		case Euclid:
+		case SortByEuclid:
 			dist = query.Bow.Euclid(entry.Bow)
 		default:
 			panic(fmt.Sprintf("Unrecognized SortBy value: %d", opts.SortBy))
