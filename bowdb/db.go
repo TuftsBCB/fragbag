@@ -12,6 +12,7 @@ import (
 	"os"
 	path "path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/TuftsBCB/fragbag"
@@ -37,7 +38,8 @@ type DB struct {
 
 	// The set of entries read from disk when reading a bow DB.
 	// This is populated by ReadAll.
-	entries []bow.Bowed
+	entries     []bow.Bowed
+	readAllLock *sync.Mutex // Protects concurrent calls of ReadAll
 
 	fileBuf *bufio.Reader // A buffer for reading the bow db.
 
@@ -59,7 +61,10 @@ type DB struct {
 func Open(fpath string) (*DB, error) {
 	var err error
 
-	db := &DB{Name: path.Base(fpath)}
+	db := &DB{
+		Name:        path.Base(fpath),
+		readAllLock: new(sync.Mutex),
+	}
 
 	dbf, err := os.Open(fpath)
 	if err != nil {
@@ -89,7 +94,17 @@ func Open(fpath string) (*DB, error) {
 // ReadAll reads all entries from disk and returns them in a slice.
 // Subsequent calls do not read from disk; the already read entries are
 // returned.
+//
+// ReadAll will panic if it is called on a database that was made with the
+// Create function.
 func (db *DB) ReadAll() ([]bow.Bowed, error) {
+	if db.readAllLock == nil {
+		panic("DB.ReadAll cannot be called when the database is being written")
+	}
+
+	db.readAllLock.Lock()
+	defer db.readAllLock.Unlock()
+
 	if db.entries != nil {
 		return db.entries, nil
 	}
@@ -168,7 +183,7 @@ func Create(lib fragbag.Library, fpath string) (*DB, error) {
 // goroutines. The bowed value given must have been computed with the fragment
 // library given to Create.
 //
-// Add will panic if it is called on a BOW database that been opened for
+// Add will panic if it is called on a BOW database that has been opened for
 // reading.
 func (db *DB) Add(e bow.Bowed) {
 	if db.entryChan == nil {
