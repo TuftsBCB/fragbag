@@ -6,6 +6,7 @@ import (
 
 	"github.com/TuftsBCB/fragbag"
 	"github.com/TuftsBCB/io/pdb"
+	"github.com/TuftsBCB/io/pdbx"
 	"github.com/TuftsBCB/seq"
 	"github.com/TuftsBCB/structure"
 )
@@ -54,20 +55,69 @@ func BowerFromChain(c *pdb.Chain) StructureBower {
 	return pdbChainStructure{c}
 }
 
-func (chain pdbChainStructure) id() string {
+func (c pdbChainStructure) id() string {
 	switch {
-	case len(chain.Entry.Scop) > 0:
-		return chain.Entry.Scop
-	case len(chain.Entry.Cath) > 0:
-		return chain.Entry.Cath
+	case len(c.Entry.Cath) > 0:
+		return c.Entry.Cath
+	case len(c.Entry.Scop) > 0:
+		return c.Entry.Scop
 	}
-	return fmt.Sprintf("%s%c", strings.ToLower(chain.Entry.IdCode), chain.Ident)
+	return fmt.Sprintf("%s%c", strings.ToLower(c.Entry.IdCode), c.Ident)
 }
 
 func (c pdbChainStructure) StructureBow(lib fragbag.StructureLibrary) Bowed {
 	return Bowed{
 		Id:  c.id(),
 		Bow: StructureBow(lib, c.CaAtoms()),
+	}
+}
+
+type pdbModelStructure struct {
+	*pdb.Model
+}
+
+// BowerFromModel provides a reference implementation of the StructureBower
+// interface for PDB models.
+func BowerFromModel(c *pdb.Model) StructureBower {
+	return pdbModelStructure{c}
+}
+
+func (m pdbModelStructure) id() string {
+	switch {
+	case len(m.Entry.Scop) > 0:
+		return m.Entry.Scop
+	case len(m.Entry.Cath) > 0:
+		return m.Entry.Cath
+	}
+	return fmt.Sprintf("%s%c%d",
+		strings.ToLower(m.Entry.IdCode), m.Chain.Ident, m.Num)
+}
+
+func (m pdbModelStructure) StructureBow(lib fragbag.StructureLibrary) Bowed {
+	return Bowed{
+		Id:  m.id(),
+		Bow: StructureBow(lib, m.CaAtoms()),
+	}
+}
+
+type cifChainStructure struct {
+	*pdbx.Chain
+}
+
+// BowerFromCifChain provides a reference implementation of the StructureBower
+// interface for chains in PDBx/mmCIF formatted files.
+func BowerFromCifChain(c *pdbx.Chain) StructureBower {
+	return cifChainStructure{c}
+}
+
+func (c cifChainStructure) id() string {
+	return fmt.Sprintf("%s%c", strings.ToLower(c.Entity.Entry.Id), c.Id)
+}
+
+func (c cifChainStructure) StructureBow(lib fragbag.StructureLibrary) Bowed {
+	return Bowed{
+		Id:  c.id(),
+		Bow: StructureBow(lib, c.Models[0].AlphaCarbons),
 	}
 }
 
