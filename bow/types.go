@@ -138,7 +138,9 @@ func StructureBow(lib fragbag.StructureLibrary, atoms []structure.Coords) Bow {
 	uplimit = len(atoms) - libSize
 	for i := 0; i <= uplimit; i++ {
 		best = lib.BestStructureFragment(atoms[i : i+libSize])
-		b.Freqs[best] += 1
+		if best > -1 {
+			b.Freqs[best] += 1
+		}
 	}
 	if wlib, ok := lib.(fragbag.WeightedLibrary); ok {
 		b = b.Weighted(wlib)
