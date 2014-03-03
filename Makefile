@@ -6,8 +6,8 @@ install:
 	go install ./...
 
 fmt:
-	gofmt -w */*.go experiments/cmd/*/*.go
-	colcheck */*.go experiments/cmd/*/*.go
+	gofmt -w *.go */*.go
+	colcheck *.go */*.go
 
 push:
 	git push origin master
