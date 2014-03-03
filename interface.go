@@ -38,6 +38,11 @@ type Library interface {
 	// FragmentString returns a custom string representation of the
 	// given fragment.
 	FragmentString(fragNum int) string
+
+	// Fragment returns a representation of the sequence fragment
+	// corresponding to fragNum. The representation is specific to the
+	// library.
+	Fragment(fragNum int) interface{}
 }
 
 // StructureLibrary adds methods specific to the operations defined on a

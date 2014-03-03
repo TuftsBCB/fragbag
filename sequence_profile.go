@@ -120,6 +120,10 @@ func (lib *sequenceProfile) FragmentString(fragNum int) string {
 	return fmt.Sprintf("> %d\n%s", fragNum, lib.Fragments[fragNum].Profile)
 }
 
+func (lib *sequenceProfile) Fragment(fragNum int) interface{} {
+	return lib.Fragments[fragNum].Profile
+}
+
 // AlignmentProb computes the probability of the sequence `s` aligning
 // with the profile in `frag`. The sequence must have length equivalent
 // to the fragment size.

@@ -131,6 +131,10 @@ func (lib *sequenceHMM) AlignmentProb(fragi int, s seq.Sequence) seq.Prob {
 	return frag.ViterbiScore(s)
 }
 
+func (lib *sequenceHMM) Fragment(fragNum int) interface{} {
+	return lib.Fragments[fragNum].HMM
+}
+
 func (lib *sequenceHMM) FragmentString(fragNum int) string {
 	return fmt.Sprintf("> %d\n%s", fragNum, lib.Fragments[fragNum].HMM)
 }

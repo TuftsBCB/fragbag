@@ -118,6 +118,10 @@ func (lib *structureAtoms) Atoms(fragNum int) []structure.Coords {
 	return lib.Fragments[fragNum].FragAtoms
 }
 
+func (lib *structureAtoms) Fragment(fragNum int) interface{} {
+	return lib.Atoms(fragNum)
+}
+
 // String returns the fragment number, library and its corresponding atoms.
 func (lib *structureAtoms) FragmentString(fragNum int) string {
 	atoms := lib.Atoms(fragNum)
